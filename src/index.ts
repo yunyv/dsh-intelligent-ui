@@ -12,7 +12,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { defineTool, type JsonValue } from '@deepseek-ai/dsh-tools'
+import { defineTool } from '@deepseek-ai/dsh-tools'
 import z from '@deepseek-ai/schemastery'
 import { ARTIFACT_TOOL_NAME, PLUGIN_ID } from './meta.ts'
 import { genuiSkillProvider } from './skill.ts'
@@ -23,6 +23,7 @@ import {
 	PARAMETERS,
 	isConcurrencySafe,
 	runArtifact,
+	type Json,
 	type ToolConfig
 } from './tool.ts'
 
@@ -58,7 +59,7 @@ export interface PluginConfig extends ToolConfig {
 /** The revision payload a tool result carries, as the presentation hooks see it. */
 interface Presented {
 	note: string
-	meta: JsonValue | null
+	meta: Json | null
 }
 
 /** Build the tool bound to one store and configuration. */

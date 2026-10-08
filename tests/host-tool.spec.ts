@@ -69,7 +69,6 @@ beforeEach(() => {
 	config = {
 		maxSourceBytes: 2_000_000,
 		maxArtifactsPerSession: 40,
-		storeRoot: root,
 		includeDegradedText: true
 	}
 })
