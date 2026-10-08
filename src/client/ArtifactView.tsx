@@ -13,7 +13,7 @@
  * created it, or the first one the transcript window still holds. Later `patch`
  * cards publish through the shared store and render a compact update row, so a
  * patch reaches the live frame instead of spawning a second preview.
- * @module dsh-artifacts-live/client/ArtifactView
+ * @module dsh-genui/client/ArtifactView
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'

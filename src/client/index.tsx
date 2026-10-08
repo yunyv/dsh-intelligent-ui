@@ -1,5 +1,5 @@
 /**
- * Browser half of dsh-artifacts-live: claims the `artifact` tool row so the
+ * Browser half of dsh-genui: claims the `artifact` tool row so the
  * preview renders in the conversation, and registers an Artifacts page type in
  * the right-hand sidebar so every artifact keeps a persistent home.
  *
@@ -13,7 +13,7 @@
  *    every registration already made — the whole browser half disappears. Each
  *    deferred registration therefore catches its own failure, which keeps the
  *    conversation card alive even when the optional column is not.
- * @module dsh-artifacts-live/client
+ * @module dsh-genui/client
  */
 
 import type { Context } from '@deepseek-ai/cordis'

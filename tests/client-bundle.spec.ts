@@ -103,7 +103,7 @@ beforeAll(() => {
 	;(0, eval)(readFileSync(join(process.cwd(), 'lib', 'client.js'), 'utf8'))
 	expect(entries, 'the bundle must register exactly one loader entry').toHaveLength(1)
 	const entry = entries[0]!
-	expect(entry.id).toBe('dsh-artifacts-live')
+	expect(entry.id).toBe('dsh-genui')
 	client = entry.factory((specifier: string) => {
 		if (specifier === 'react') return React
 		if (specifier === 'react/jsx-runtime') return jsxRuntime
@@ -146,7 +146,7 @@ function componentFor(name: string, key: string): (props: never) => React.ReactN
 
 describe('browser half', () => {
 	it('exports the cordis plugin face', () => {
-		expect(client.name).toBe('dsh-artifacts-live')
+		expect(client.name).toBe('dsh-genui')
 		expect(client.inject).toContain('slots')
 	})
 

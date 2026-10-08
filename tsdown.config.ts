@@ -1,5 +1,5 @@
 /**
- * tsdown preset for dsh-artifacts-live: an ESM node half with declarations plus
+ * tsdown preset for dsh-genui: an ESM node half with declarations plus
  * a browser half wrapped for the harness client-module loader.
  *
  * The browser half may only `require()` the loader's frozen platform seeds, so
@@ -9,7 +9,7 @@
  */
 import type { UserConfig } from 'tsdown'
 
-const PLUGIN_ID = 'dsh-artifacts-live'
+const PLUGIN_ID = 'dsh-genui'
 
 /** Module specifiers the 0.2.0-rc.2 web shell shares into its frozen module table. */
 const PLATFORM_MODULES = [

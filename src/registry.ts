@@ -4,7 +4,7 @@
  * id afterwards. Kept in memory and scoped by session id; every revision also
  * rides the tool result, so rendering never depends on this registry being
  * alive (replay restores cards from the session log alone).
- * @module dsh-artifacts-live/registry
+ * @module dsh-genui/registry
  */
 
 import type { ArtifactMode } from './meta.ts'

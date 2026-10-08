@@ -5,11 +5,11 @@
  * `block.meta`), the frame message types, and the tolerant argument reader the
  * streaming preview uses while the model is still writing the call.
  * Pure: no node builtins, no host imports, so the browser bundle can share it.
- * @module dsh-artifacts-live/meta
+ * @module dsh-genui/meta
  */
 
 /** Package identity: the harness client-module id and the ModuleLoader entry id. */
-export const PLUGIN_ID = 'dsh-artifacts-live'
+export const PLUGIN_ID = 'dsh-genui'
 
 /** Wire tool name; also the key the client registers under `tool.call.toolview`. */
 export const ARTIFACT_TOOL_NAME = 'artifact'

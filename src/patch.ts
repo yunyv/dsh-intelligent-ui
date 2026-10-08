@@ -2,7 +2,7 @@
  * Artifact patch semantics: exact `old_string` → `new_string` replacement, the
  * same contract the file `edit` tool teaches the model. Pure functions, so the
  * registry can fail loud with a located diagnostic instead of a silent no-op.
- * @module dsh-artifacts-live/patch
+ * @module dsh-genui/patch
  */
 
 /** One located occurrence of the searched text. */

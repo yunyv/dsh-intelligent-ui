@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Claude-Artifacts-style live artifacts for DSH: a model-authored HTML document rendered in a sandboxed frame inside the conversation, patched in place, with interaction handed back to the session.",
+  "description": "DSH generative-UI plugin: model-authored interfaces rendered natively in the conversation (DIL compiled-program path) or in a sandboxed frame (HTML escape hatch), patched in place, persisted with version history.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "exports": {
@@ -24,7 +24,8 @@
     "build": "tsdown",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.client.json && tsc -p tsconfig.client-test.json",
     "test": "vitest run",
-    "check": "pnpm run typecheck && pnpm run build && pnpm run test"
+    "test:vendor": "node --test vendor/dil-replica/replica/test/*.test.js",
+    "check": "pnpm run typecheck && pnpm run build && pnpm run test && pnpm run test:vendor"
   },
   "dsh": {
     "bundle": {
@@ -53,6 +54,7 @@
     "@types/react": "~18.3.0",
     "@types/react-dom": "^18.3.0",
     "jsdom": "^30.1.1",
+    "linkedom": "^0.18.13",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tsdown": "^0.22.0",

@@ -25,7 +25,7 @@
  * because this version exposes no fence-renderer seat. A block whose language is
  * unknown but whose first line names the fence is accepted too, so the channel
  * survives a host that stops publishing the info string.
- * @module dsh-artifacts-live/client/fence
+ * @module dsh-genui/client/fence
  */
 
 import { createRoot } from 'react-dom/client'

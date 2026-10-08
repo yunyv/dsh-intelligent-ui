@@ -1,9 +1,9 @@
 /**
- * Host half of dsh-artifacts-live: registers the `artifact` tool, owns the
+ * Host half of dsh-genui: registers the `artifact` tool, owns the
  * per-session artifact registry, and publishes each revision as replayable
  * presentation metadata so the browser half can render it live — and re-render
  * it on replay — without consulting any live state.
- * @module dsh-artifacts-live
+ * @module dsh-genui
  */
 
 import type { Context } from '@deepseek-ai/cordis'
@@ -250,7 +250,7 @@ export function artifactTool(registry: ArtifactRegistry, config: PluginConfig) {
 }
 
 /** Process-wide holder so a plugin reload keeps the artifacts it already knows. */
-const REGISTRY_SLOT = Symbol.for('dsh-artifacts-live.registry')
+const REGISTRY_SLOT = Symbol.for('dsh-genui.registry')
 
 /**
  * The registry for this process.
