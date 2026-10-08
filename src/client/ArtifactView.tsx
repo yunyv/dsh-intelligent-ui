@@ -26,9 +26,11 @@ import {
 	SYNC_MESSAGE,
 	THEME_MESSAGE,
 	artifactMetaFrom,
+	asHtmlMeta,
 	partialStringField,
 	streamingMetaFromArgs,
 	type ArtifactMeta,
+	type ArtifactMetaHtml,
 	type FrameMessage
 } from '../meta.ts'
 import { HEIGHT_CAP, HEIGHT_MIN, buildFrameDoc, resolveTheme } from './frame.ts'
@@ -139,16 +141,27 @@ export function ArtifactView(props: ArtifactViewProps): React.ReactNode {
 	// undefined on a failed call so the row can show its error line instead of
 	// pretending the artifact is still being written.
 	if (isResult && (block.isError === true || meta === undefined)) return <QuietRow text={firstLine(block)} />
-	if (isResult && meta !== undefined) return <ArtifactRow meta={meta} />
+	if (isResult && meta !== undefined) {
+		// A settled revision carries its payload in one of two shapes. This row only
+		// knows how to frame the HTML one; a DIL revision is a compiled program whose
+		// interface belongs to the marker the model writes in its answer, so the row
+		// stays compact and points at the column instead.
+		const settled = asHtmlMeta(meta)
+		return settled === undefined ? <DilRow meta={meta} /> : <ArtifactRow meta={settled} />
+	}
 
 	const provisional = props.phase === 'preparing' ? streamingMetaFromArgs(partial) : streamingMetaFromArgs(argsRaw)
-	if (provisional === undefined) return <QuietRow text="Artifact · 生成中…" />
+	const provisionalHtml = provisional === undefined ? undefined : asHtmlMeta(provisional)
+	// A DIL document has no compiled program until the call settles, so there is
+	// nothing to mount yet — the row says so instead of drawing an empty frame.
+	if (provisional !== undefined && provisionalHtml === undefined) return <QuietRow text="GenUI · 正在生成界面…" />
+	if (provisionalHtml === undefined) return <QuietRow text="Artifact · 生成中…" />
 	if (!looksLikeCreate(argsRaw)) return <QuietRow text="Artifact · 正在修改…" />
 	return (
 		<ArtifactFrame
 			callId={props.callId}
 			meta={undefined}
-			pumpHtml={provisional.html}
+			pumpHtml={provisionalHtml.html}
 			inputActions={props.inputActions}
 		/>
 	)
@@ -160,11 +173,34 @@ function QuietRow({ text }: { text: string }): React.ReactNode {
 }
 
 /**
+ * The settled row for a DIL revision: what the interface is, and where to open it.
+ *
+ * Unlike the HTML row there is nothing to preview inline: the compiled program's
+ * interface is rendered at the marker the model wrote, and duplicating it here
+ * would put two live copies of the same state on screen.
+ * @param props - the revision this row reports.
+ * @returns the row.
+ */
+function DilRow({ meta }: { meta: ArtifactMeta }): React.ReactNode {
+	return (
+		<div style={HEADER}>
+			<span style={{ fontWeight: 500 }}>{meta.title}</span>
+			<span>v{meta.version}</span>
+			<span>· {meta.dil?.stateKeys.length ?? 0} 个控件状态</span>
+			<span style={{ opacity: 0.55 }}>{meta.id}</span>
+			<span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+				<button type="button" style={ACTION} onClick={() => panelOpener.current?.(meta.id)}>在侧栏打开</button>
+			</span>
+		</div>
+	)
+}
+
+/**
  * The settled row: what the artifact is, and the two ways to open it.
  * @param props - the revision this row reports.
  * @returns the row.
  */
-function ArtifactRow({ meta }: { meta: ArtifactMeta }): React.ReactNode {
+function ArtifactRow({ meta }: { meta: ArtifactMetaHtml }): React.ReactNode {
 	const [preview, setPreview] = useState(false)
 	return (
 		<div>
@@ -192,7 +228,7 @@ function ArtifactRow({ meta }: { meta: ArtifactMeta }): React.ReactNode {
  */
 export function ArtifactFrame({ callId, meta, pumpHtml, inputActions, onOpenPanel }: {
 	callId: string
-	meta: ArtifactMeta | undefined
+	meta: ArtifactMetaHtml | undefined
 	/** Streamed source while the call is still running; absent on a settled frame. */
 	pumpHtml?: string
 	inputActions?: InputActions
@@ -284,13 +320,17 @@ export function ArtifactFrame({ callId, meta, pumpHtml, inputActions, onOpenPane
 		return artifactStore.subscribe(meta.id, (state) => {
 			if (state === undefined) return
 			if (state.meta.version <= adoptedRef.current) return
-			adoptedRef.current = state.meta.version
-			if (state.meta.render === 'reconcile' && loadedRef.current
-				&& pushToFrame({ type: SYNC_MESSAGE, token: callId, html: state.meta.html })) {
+			// This frame renders the HTML path only. A revision that arrives on the
+			// other path is a different artifact's problem, not this frame's.
+			const settled = asHtmlMeta(state.meta)
+			if (settled === undefined) return
+			adoptedRef.current = settled.version
+			if (settled.render === 'reconcile' && loadedRef.current
+				&& pushToFrame({ type: SYNC_MESSAGE, token: callId, html: settled.html })) {
 				return
 			}
-			storageRef.current = artifactStore.get(state.meta.id)?.storage ?? storageRef.current
-			setFrame(current => ({ html: state.meta.html, title: state.meta.title, nonce: current.nonce + 1 }))
+			storageRef.current = artifactStore.get(settled.id)?.storage ?? storageRef.current
+			setFrame(current => ({ html: settled.html, title: settled.title, nonce: current.nonce + 1 }))
 		})
 	}, [meta?.id, callId, pushToFrame])
 

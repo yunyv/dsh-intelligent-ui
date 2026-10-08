@@ -31,6 +31,7 @@
 import { createRoot } from 'react-dom/client'
 import { useEffect, useState } from 'react'
 import type { ArtifactMeta } from '../meta.ts'
+import { asHtmlMeta } from '../meta.ts'
 import { ArtifactFrame } from './ArtifactView.tsx'
 import { artifactStore, panelOpener, sessionInput } from './store.ts'
 
@@ -106,13 +107,35 @@ function FenceCard({ id }: { id: string }): React.ReactNode {
 			if (state !== undefined) setMeta(state.meta)
 		})
 	}, [id])
+
+	// The marker names an artifact whose payload is one of two shapes. The HTML
+	// path mounts a frame here; the DIL path mounts the compiled program's own
+	// view, which is a separate host and lands as its own component.
+	const html = meta === undefined ? undefined : asHtmlMeta(meta)
+	if (meta !== undefined && html === undefined) return <DilFence id={id} meta={meta} />
 	return (
 		<ArtifactFrame
 			callId={`fence:${id}`}
-			meta={meta}
+			meta={html}
 			inputActions={sessionInput.current}
 			onOpenPanel={panelOpener.current === undefined ? undefined : () => panelOpener.current?.(id)}
 		/>
+	)
+}
+
+/**
+ * The DIL revision mounted at its marker.
+ *
+ * Until the compiled-program host lands this states the situation rather than
+ * drawing an empty box: an artifact that silently renders nothing reads as a
+ * broken answer.
+ */
+function DilFence({ id, meta }: { id: string, meta: ArtifactMeta }): React.ReactNode {
+	return (
+		<div style={{ border: '1px solid var(--dsw-alias-border-l1, #ddd)', borderRadius: 8, padding: '10px 12px', fontSize: 12, opacity: 0.75, lineHeight: 1.7 }}>
+			<div><span style={{ fontWeight: 500 }}>{meta.title}</span> · v{meta.version} · {id}</div>
+			<div>{meta.dil?.stateKeys.length ?? 0} 个控件状态已编译，界面宿主待接入。</div>
+		</div>
 	)
 }
 

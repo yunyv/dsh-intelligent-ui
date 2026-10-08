@@ -4,9 +4,15 @@
  * `output.presentationMeta` (and therefore the client reads back as
  * `block.meta`), the frame message types, and the tolerant argument reader the
  * streaming preview uses while the model is still writing the call.
+ *
  * Pure: no node builtins, no host imports, so the browser bundle can share it.
+ * The one import is type-only and points at the compiler's own type module,
+ * which is itself pure — that keeps a single definition of the compiled
+ * payload instead of two that drift.
  * @module dsh-genui/meta
  */
+
+import type { DilCompiled } from './dil/types.ts'
 
 /** Package identity: the harness client-module id and the ModuleLoader entry id. */
 export const PLUGIN_ID = 'dsh-genui'
@@ -20,22 +26,50 @@ export type ArtifactMode = 'inline' | 'wide'
 /** How the live frame must adopt the next revision. */
 export type ArtifactRender = 'reload' | 'reconcile'
 
+/**
+ * Which rendering path an artifact belongs to.
+ *
+ * `dil` — the model wrote a DIL document; the compiled program runs in the
+ * sandbox and the host renders the tree it returns.
+ * `html` — the model wrote a self-contained document; the frame renders it.
+ */
+export type ArtifactEngine = 'dil' | 'html'
+
 /** One artifact revision as the client receives it inside the tool result. */
 export interface ArtifactMeta {
 	kind: 'artifact'
+	/** Rendering path; decides which view the client mounts. */
+	engine: ArtifactEngine
 	action: 'create' | 'patch'
 	/** Stable artifact identity for the session; patches address it. */
 	id: string
 	title: string
-	/** Complete source, so replay restores the card without any live registry. */
-	html: string
 	/** Monotonic revision, starting at 1. Drives in-place adoption. */
 	version: number
+	/** The store's own name for the same number, so both halves agree without a translation. */
+	versionNumber?: number
+	/** Revision this one was built from, for history and conflict messages. */
+	parentVersionId?: string
+	/** SHA-256 of the stored bytes: identifies a revision without comparing payloads. */
+	contentSha256?: string
+	/** Stored byte length. `sizeBytes` is a character count, so the two differ for CJK. */
+	contentBytes?: number
+	/** One-line revision note, shown in the catalog without reading the payload. */
+	changelog?: string
 	mode: ArtifactMode
-	render: ArtifactRender
+	/** UTF-16 length of the payload, as the client's layout code already uses it. */
 	sizeBytes: number
 	/** Owning session id, so a session-scoped catalog can filter. */
 	session?: string
+	/**
+	 * Complete source, so replay restores the card without any live registry.
+	 * Present for `html`.
+	 */
+	html?: string
+	/** How `html` must be adopted. Meaningless on the `dil` path. */
+	render?: ArtifactRender
+	/** The compiled DIL payload. Present for `dil`. */
+	dil?: DilCompiled
 }
 
 /** Frame → card: measured content height. */
@@ -64,28 +98,113 @@ export interface FrameMessage {
 	scheme?: string
 }
 
+/** Whether an untrusted value is a non-null object. */
+function isObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null
+}
+
+/** Whether an untrusted value is a string array. */
+function isStringArray(value: unknown): value is string[] {
+	return Array.isArray(value) && value.every(entry => typeof entry === 'string')
+}
+
+/**
+ * Recover a compiled DIL payload from persisted meta.
+ *
+ * Validates the fields the client actually reads to render — the program, its
+ * constant pool, the streamed component spans, the state keys and the markdown
+ * projection — and passes the rest through, because the value came from this
+ * plugin's own host half rather than from a peer. A payload that cannot render
+ * is rejected whole, so a card never mounts half a program.
+ * @param value - untrusted `meta.dil`.
+ * @returns the payload, or undefined when it cannot render.
+ */
+export function dilCompiledFrom(value: unknown): DilCompiled | undefined {
+	if (!isObject(value)) return undefined
+	if (typeof value.source !== 'string') return undefined
+	if (typeof value.code !== 'string' || value.code.length === 0) return undefined
+	if (!isObject(value.constants)) return undefined
+	if (typeof value.fallbackMarkdown !== 'string') return undefined
+	if (!Array.isArray(value.stateKeys)) return undefined
+	if (!Array.isArray(value.genuiComponents)) return undefined
+	if (!isObject(value.appData)) return undefined
+	return value as unknown as DilCompiled
+}
+
 /** Narrow one untrusted value to {@link ArtifactMeta}. */
 export function artifactMetaFrom(value: unknown): ArtifactMeta | undefined {
-	if (typeof value !== 'object' || value === null) return undefined
-	const row = value as Record<string, unknown>
+	if (!isObject(value)) return undefined
+	const row = value
 	if (row.kind !== 'artifact') return undefined
 	if (typeof row.id !== 'string' || row.id.length === 0) return undefined
-	if (typeof row.html !== 'string') return undefined
 	if (typeof row.title !== 'string') return undefined
 	if (typeof row.version !== 'number' || !Number.isFinite(row.version)) return undefined
 	if (row.mode !== 'inline' && row.mode !== 'wide') return undefined
-	return {
-		kind: 'artifact',
-		action: row.action === 'patch' ? 'patch' : 'create',
+
+	// Rows written before `engine` existed are all HTML: the DIL path is the one
+	// that introduced the field.
+	const engine: ArtifactEngine = row.engine === 'dil' ? 'dil' : 'html'
+	const mode: ArtifactMode = row.mode
+
+	const shared = {
+		kind: 'artifact' as const,
+		engine,
+		action: row.action === 'patch' ? ('patch' as const) : ('create' as const),
 		id: row.id,
 		title: row.title,
-		html: row.html,
 		version: row.version,
-		mode: row.mode,
-		render: row.render === 'reconcile' ? 'reconcile' : 'reload',
-		sizeBytes: typeof row.sizeBytes === 'number' ? row.sizeBytes : row.html.length,
+		mode,
+		sizeBytes: typeof row.sizeBytes === 'number' ? row.sizeBytes : 0,
+		...(typeof row.versionNumber === 'number' ? { versionNumber: row.versionNumber } : {}),
+		...(typeof row.parentVersionId === 'string' ? { parentVersionId: row.parentVersionId } : {}),
+		...(typeof row.contentSha256 === 'string' ? { contentSha256: row.contentSha256 } : {}),
+		...(typeof row.contentBytes === 'number' ? { contentBytes: row.contentBytes } : {}),
+		...(typeof row.changelog === 'string' ? { changelog: row.changelog } : {}),
 		...(typeof row.session === 'string' ? { session: row.session } : {})
 	}
+
+	if (engine === 'dil') {
+		const dil = dilCompiledFrom(row.dil)
+		if (dil === undefined) return undefined
+		return { ...shared, dil }
+	}
+
+	if (typeof row.html !== 'string') return undefined
+	return {
+		...shared,
+		html: row.html,
+		render: row.render === 'reconcile' ? 'reconcile' : 'reload',
+		sizeBytes: typeof row.sizeBytes === 'number' ? row.sizeBytes : row.html.length
+	}
+}
+
+/**
+ * A revision on the HTML path, with the payload narrowed to actually present.
+ * Components that render a frame take this rather than {@link ArtifactMeta}, so
+ * "there is no html" is a type error at the point of use instead of a runtime
+ * crash inside a mount effect.
+ */
+export type ArtifactMetaHtml = ArtifactMeta & { engine: 'html', html: string }
+
+/** A revision on the DIL path, with the compiled payload narrowed to present. */
+export type ArtifactMetaDil = ArtifactMeta & { engine: 'dil', dil: DilCompiled }
+
+/**
+ * Narrow a revision to the HTML path.
+ * @param meta - a revision of either path.
+ * @returns the revision with `html` guaranteed, or undefined on the DIL path.
+ */
+export function asHtmlMeta(meta: ArtifactMeta): ArtifactMetaHtml | undefined {
+	return meta.engine === 'html' && typeof meta.html === 'string' ? meta as ArtifactMetaHtml : undefined
+}
+
+/**
+ * Narrow a revision to the DIL path.
+ * @param meta - a revision of either path.
+ * @returns the revision with `dil` guaranteed, or undefined on the HTML path.
+ */
+export function asDilMeta(meta: ArtifactMeta): ArtifactMetaDil | undefined {
+	return meta.engine === 'dil' && meta.dil !== undefined ? meta as ArtifactMetaDil : undefined
 }
 
 /**
@@ -140,22 +259,45 @@ function unescapeOne(char: string): string {
 	}
 }
 
-/** A provisional meta assembled from a streaming call, before it settles. */
-export function streamingMetaFromArgs(raw: string | undefined): ArtifactMeta | undefined {
-	const html = partialStringField(raw, 'html')
-	if (html === undefined || html.length === 0) return undefined
+/**
+ * A provisional meta assembled from a streaming call, before it settles.
+ *
+ * The client renders this while the model is still writing, so only the fields
+ * needed to draw something are read, and nothing here is trusted as final.
+ * @param raw - accumulated argument text, complete or not.
+ * @param engine - override the path; by default it is read from the stream.
+ * @returns a provisional meta, or undefined before the payload has started.
+ */
+export function streamingMetaFromArgs(raw: string | undefined, engine?: ArtifactEngine): ArtifactMeta | undefined {
+	// The tool's own default is the DIL path, so a stream that has not yet reached
+	// `engine` is assumed to be DIL. An explicit caller always wins.
+	const requested = partialStringField(raw, 'engine')
+	const path: ArtifactEngine = engine ?? (requested === 'html' ? 'html' : 'dil')
 	const title = partialStringField(raw, 'title')
 	const mode = partialStringField(raw, 'mode')
 	const id = partialStringField(raw, 'id')
-	return {
-		kind: 'artifact',
-		action: 'create',
+	const shared = {
+		kind: 'artifact' as const,
+		engine: path,
+		action: 'create' as const,
 		id: id ?? 'streaming',
 		title: title === undefined || title.length === 0 ? 'Artifact' : title,
-		html,
 		version: 1,
-		mode: mode === 'wide' ? 'wide' : 'inline',
-		render: 'reload',
-		sizeBytes: html.length
+		mode: mode === 'wide' ? ('wide' as const) : ('inline' as const),
+		sizeBytes: 0
 	}
+	if (path === 'html') {
+		const html = partialStringField(raw, 'html')
+		if (html === undefined || html.length === 0) return undefined
+		return { ...shared, html, render: 'reload', sizeBytes: html.length }
+	}
+	const source = partialStringField(raw, 'source')
+	if (source === undefined || source.length === 0) return undefined
+	// A partial document has no compiled program yet, so the card cannot mount a
+	// view from it. The source travels so the preview can show what is arriving;
+	// the real payload replaces this meta when the call settles.
+	return { ...shared, dil: { source } as unknown as DilCompiled }
 }
+
+/** Whether a string-array field was recovered, for callers that need the check. */
+export { isStringArray }

@@ -15,6 +15,7 @@ import type { ArtifactMeta } from '../src/meta.ts'
 function artifact(id: string, version = 1): ArtifactMeta {
 	return {
 		kind: 'artifact',
+		engine: 'html',
 		action: version === 1 ? 'create' : 'patch',
 		id,
 		title: '演示',

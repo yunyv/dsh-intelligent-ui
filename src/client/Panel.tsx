@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { HEIGHT_MESSAGE, STORAGE_MESSAGE, type FrameMessage } from '../meta.ts'
+import { HEIGHT_MESSAGE, STORAGE_MESSAGE, asHtmlMeta, type ArtifactMetaHtml, type FrameMessage } from '../meta.ts'
 import { buildFrameDoc, resolveTheme } from './frame.ts'
 import { artifactStore, type ArtifactState } from './store.ts'
 
@@ -77,13 +77,33 @@ export function ArtifactPanel(props: ArtifactPanelProps): React.ReactNode {
 					)
 				})}
 			</div>
-			{active !== undefined && <PanelFrame key={active.meta.id} state={active} />}
+			{active !== undefined && <PanelSlot state={active} />}
 		</div>
 	)
 }
 
-/** One live artifact preview inside the panel. */
-function PanelFrame({ state }: { state: ArtifactState }): React.ReactNode {
+/** The panel's preview area: a live frame, or a pointer for a DIL revision. */
+function PanelSlot({ state }: { state: ArtifactState }): React.ReactNode {
+	const html = asHtmlMeta(state.meta)
+	if (html === undefined) {
+		// A DIL revision's compiled program renders at the marker the model wrote in
+		// its answer. Mounting a second copy here would put two live instances of the
+		// same state on screen, so the panel points at that one instead.
+		return (
+			<div style={{ padding: 12, fontSize: 12, opacity: 0.75, lineHeight: 1.7 }}>
+				<div><span style={{ fontWeight: 500 }}>{state.meta.title}</span> · v{state.meta.version}</div>
+				<div>这个界面在对话中对应的标记处渲染，交互状态与那边共享。</div>
+			</div>
+		)
+	}
+	return <PanelFrame key={state.meta.id} state={{ ...state, meta: html }} />
+}
+
+/** Artifact state whose payload is known to belong to the HTML path. */
+type HtmlArtifactState = Omit<ArtifactState, 'meta'> & { meta: ArtifactMetaHtml }
+
+/** One live HTML artifact preview inside the panel. */
+function PanelFrame({ state }: { state: HtmlArtifactState }): React.ReactNode {
 	const iframeRef = useRef<HTMLIFrameElement | null>(null)
 	const storageRef = useRef<Record<string, string>>(state.storage)
 	const adoptedRef = useRef<number>(state.meta.version)
@@ -92,7 +112,7 @@ function PanelFrame({ state }: { state: ArtifactState }): React.ReactNode {
 	const [generation, setGeneration] = useState(0)
 	const [height, setHeight] = useState(240)
 
-	sourceRef.current = artifactStore.get(state.meta.id)?.meta ?? state.meta
+	sourceRef.current = asHtmlMeta(artifactStore.get(state.meta.id)?.meta ?? state.meta) ?? sourceRef.current
 	const themeRef = useRef(theme)
 	themeRef.current = theme
 

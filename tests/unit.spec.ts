@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { artifactMetaFrom, partialStringField, streamingMetaFromArgs } from '../src/meta.ts'
+import { artifactMetaFrom, asDilMeta, asHtmlMeta, partialStringField, streamingMetaFromArgs } from '../src/meta.ts'
 import { declaresSkeleton, normalizeArtifactSource, normalizedBytes } from '../src/normalize.ts'
 import { PatchError, applyPatch, locate, requiresReload } from '../src/patch.ts'
 import { ArtifactRegistry } from '../src/registry.ts'
@@ -96,8 +96,10 @@ describe('partialStringField', () => {
 })
 
 describe('streamingMetaFromArgs', () => {
-	it('builds a provisional revision from a partial call', () => {
-		const meta = streamingMetaFromArgs('{"action":"create","title":"图表","html":"<canvas></canvas>","mode":"wide"')
+	it('builds a provisional revision from a partial HTML call', () => {
+		const raw = '{"action":"create","engine":"html","title":"图表","html":"<canvas></canvas>","mode":"wide"'
+		const meta = streamingMetaFromArgs(raw)
+		expect(meta?.engine).toBe('html')
 		expect(meta?.html).toBe('<canvas></canvas>')
 		expect(meta?.title).toBe('图表')
 		expect(meta?.mode).toBe('wide')
@@ -105,7 +107,62 @@ describe('streamingMetaFromArgs', () => {
 	})
 
 	it('stays undefined until html arrives', () => {
-		expect(streamingMetaFromArgs('{"action":"create"')).toBeUndefined()
+		expect(streamingMetaFromArgs('{"action":"create","engine":"html"')).toBeUndefined()
+	})
+
+	it('defaults to the DIL path, which is what the tool defaults to', () => {
+		const raw = '{"action":"create","title":"计划器","source":" {@body const [n,setN] = DIL.useState(3)}'
+		const meta = streamingMetaFromArgs(raw)
+		expect(meta?.engine).toBe('dil')
+		expect(meta?.dil?.source).toContain('DIL.useState(3)')
+		// A partial document has no compiled program, so there is no frame to mount.
+		expect(meta?.html).toBeUndefined()
+	})
+
+	it('lets an explicit caller override the path read from the stream', () => {
+		// Both payloads present, so the override is what decides, not the arguments.
+		const raw = '{"action":"create","engine":"dil","source":"<box/>","html":"<p>x</p>"}'
+		expect(streamingMetaFromArgs(raw)?.engine).toBe('dil')
+		expect(streamingMetaFromArgs(raw, 'html')?.engine).toBe('html')
+		expect(streamingMetaFromArgs(raw, 'html')?.html).toBe('<p>x</p>')
+	})
+})
+
+describe('artifactMetaFrom', () => {
+	const htmlRow = { kind: 'artifact', engine: 'html', id: 'art-1', title: 't', version: 2, mode: 'inline', html: '<p>a</p>', render: 'reconcile', sizeBytes: 9 }
+
+	it('reads an HTML revision and narrows to it', () => {
+		const meta = artifactMetaFrom(htmlRow)
+		expect(meta?.engine).toBe('html')
+		expect(meta === undefined ? undefined : asHtmlMeta(meta)?.html).toBe('<p>a</p>')
+		expect(meta === undefined ? undefined : asDilMeta(meta)).toBeUndefined()
+	})
+
+	it('reads a DIL revision and narrows to it', () => {
+		const dil = { source: 'x', code: 'DIL.render()', constants: {}, fallbackMarkdown: 'x', stateKeys: ['a'], genuiComponents: [], appData: {} }
+		const meta = artifactMetaFrom({ ...htmlRow, engine: 'dil', html: undefined, render: undefined, dil })
+		expect(meta?.engine).toBe('dil')
+		expect(meta === undefined ? undefined : asDilMeta(meta)?.dil.code).toBe('DIL.render()')
+		expect(meta === undefined ? undefined : asHtmlMeta(meta)).toBeUndefined()
+	})
+
+	it('rejects a DIL revision whose payload cannot render', () => {
+		// No `code`: mounting half a program would produce a blank card.
+		expect(artifactMetaFrom({ ...htmlRow, engine: 'dil', html: undefined, dil: { source: 'x' } })).toBeUndefined()
+	})
+
+	it('treats a row without an engine as the HTML path, which is what predates it', () => {
+		const { engine: _engine, ...legacy } = htmlRow
+		expect(artifactMetaFrom(legacy)?.engine).toBe('html')
+	})
+
+	it('carries the store fields through when present', () => {
+		const meta = artifactMetaFrom({ ...htmlRow, versionNumber: 2, parentVersionId: 'art-1#1', contentSha256: 'abc', contentBytes: 40, changelog: '加了一条' })
+		expect(meta?.versionNumber).toBe(2)
+		expect(meta?.parentVersionId).toBe('art-1#1')
+		expect(meta?.contentSha256).toBe('abc')
+		expect(meta?.contentBytes).toBe(40)
+		expect(meta?.changelog).toBe('加了一条')
 	})
 })
 
