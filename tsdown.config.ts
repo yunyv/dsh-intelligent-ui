@@ -24,6 +24,19 @@ const PLATFORM_MODULES = [
 	'@deepseek-ai/dsh-client-ui-dockkit'
 ] as const
 
+/**
+ * Node builtins that must never reach the browser bundle. Bundlers resolve them
+ * happily, so without this list a server-only import fails at runtime in the app
+ * rather than at build time.
+ */
+const NODE_BUILTINS = new Set([
+	'assert', 'async_hooks', 'buffer', 'child_process', 'cluster', 'console', 'constants',
+	'crypto', 'dgram', 'diagnostics_channel', 'dns', 'domain', 'events', 'fs', 'http',
+	'http2', 'https', 'inspector', 'module', 'net', 'os', 'path', 'perf_hooks', 'process',
+	'punycode', 'querystring', 'readline', 'repl', 'stream', 'string_decoder', 'timers',
+	'tls', 'trace_events', 'tty', 'url', 'util', 'v8', 'vm', 'wasi', 'worker_threads', 'zlib'
+])
+
 export default [
 	{
 		entry: { index: 'src/index.ts' },
@@ -53,16 +66,34 @@ export default [
 			'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production')
 		},
 		plugins: [{
-			// Bundle purity gate: a value import of any package outside the frozen
-			// seeds would emit a require() the loader cannot resolve, so fail the
-			// build instead of shipping a browser half that never activates.
+			// Bundle purity gate: the browser half may only bundle relative modules
+			// and the frozen platform seeds. Anything else — an unlisted npm package
+			// or a Node builtin — would either emit a require() the loader cannot
+			// resolve or drag a server-only dependency into the browser, so fail the
+			// build instead of shipping a browser half that activates and then breaks.
+			//
+			// Node builtins are the sharp edge here: they resolve fine at build time
+			// and only explode in the browser, so they need an explicit check. The
+			// compiler is the live example — validate.ts syntax-checks generated code
+			// with node:vm, which is why the client may reference its types but must
+			// never value-import it.
 			name: 'dsh-client-bundle-purity',
-			resolveId(source: string): null {
-				if (!source.startsWith('@deepseek-ai/')) return null
+			resolveId(source: string, importer?: string): null {
+				// No importer means this is an entry, not an import: entries are
+				// project-relative paths that rolldown hands over without a `./`.
+				if (importer === undefined) return null
+				const bare = !source.startsWith('.') && !source.startsWith('/') && !source.startsWith('\0')
+				if (!bare) return null
 				if ((PLATFORM_MODULES as readonly string[]).includes(source)) return null
+				const nodeBuiltin = source.startsWith('node:')
+					|| NODE_BUILTINS.has(source)
+					|| NODE_BUILTINS.has(source.split('/')[0] ?? '')
 				throw new Error(
-					`client bundle purity: "${source}" is not a platform seed. `
-					+ 'Use a type-only import, or reach the capability through a cordis service.'
+					nodeBuiltin
+						? `client bundle purity: "${source}" is a Node builtin and cannot run in the browser. `
+							+ 'Keep the import type-only, or move the capability behind a cordis service.'
+						: `client bundle purity: "${source}" is not a platform seed. `
+							+ 'Use a type-only import, or reach the capability through a cordis service.'
 				)
 			}
 		}],
