@@ -27,7 +27,7 @@ bash scripts/reinstall-desktop.sh
 
 ## 状态
 
-两半都已在运行中的 App 里激活过（不需要重启，见下节的坑）。**尚未验证的是真实会话里的渲染与交互**，那需要一个能把 `artifact` 写进工具调用的回合。
+两半都已在真实 App 里激活，模型侧调用与**跨重启改写**都已走通。没有验过的只剩需要人眼看的观感。
 
 已在真实 Host 上验过：
 
@@ -35,6 +35,8 @@ bash scripts/reinstall-desktop.sh
 - `host/Tool/listTools` → 有 `artifact`，描述是两条路径的新版
 - `client/Slots/listSubTree root=sidebar.right.pane.tab` → 占用者有 `{registrant:"dsh-genui", key:"dsh-genui:panel", active:true}`
 - `skill genui` → 走真实技能注册表加载出完整契约，base directory 指向已安装包内的 `assets/`
+- **真实 DIL 调用**：模型在会话里调 `artifact` 编译出一张卡（`art-br6t8hve`，1381 字节），落盘到 `~/.dsh/storages/dsh-genui/`，索引里 `engine: "dil"`、sha 与内容一致
+- **跨 App 重启改写**：产物在 20:30 创建，App 在 23:06 重启，23:07 对同一个 id 打补丁成功 → v2，再 → v3。版本链是 `v1 → v2 → v3`，每版带 `parentVersionId`，六份文件都在盘上。**这正是前身插件做不到的那件事**
 
 已验证的工程面：
 
@@ -44,7 +46,7 @@ bash scripts/reinstall-desktop.sh
 - 围栏按 `engine` 分派：编译产物挂进 Shadow DOM，原始文档走帧
 - 产物层用**两个真实 OS 进程**验证：A 进程写到 v3，B 进程读回同一 sha 并续写到 v4
 
-尚未验证：真实会话里生成一张卡片、跟随主题、交互回注、重启后仍可 patch。
+尚未验证：卡片在界面上的观感（是否跟随明暗主题）、交互状态回注下一轮、以及降级文本修复的上线效果（它需要再重启一次，见上节第二坑）。
 
 ## 两个踩过的坑
 
@@ -52,7 +54,7 @@ bash scripts/reinstall-desktop.sh
 
 只用到一个值，而且是个常量（`BUNDLED_SKILL_RANK = 600`），其余全是类型——把常量写出来就彻底去掉了这个运行期依赖。`tests/host-bundle.spec.ts` 现在把"构建产物只能 import 运行时真有的东西"变成硬约束，因为这种故障没有别的办法在评审里看出来。
 
-**二、失败的否定结论会被缓存，但可以就地重置。** Host 缓存"这个包导不进来"直到进程结束。不用重启的解法是把插件条目关掉再开：
+**二、失败的否定结论会被缓存，但可以就地重置。** Host 缓存"这个包导不进来"直到进程结束。**只在那一次加载失败过**的情况下，不用重启就能救回来——把插件条目关掉再开：
 
 ```
 plugin_manager set_plugin target=include:dsh-genui enabled=false
@@ -60,6 +62,8 @@ plugin_manager set_plugin target=include:dsh-genui enabled=true
 ```
 
 条目会被重新导入，`fiberPhase` 从 `failed` 变 `active`。**注意 target 要用 `include:` 前缀的 entryId**，用包名会回 `unknown-plugin`。
+
+**但这只在加载失败时有效。** 一旦某个版本成功加载过，模块就进了进程的 ESM 缓存，关掉再开只会重新 `apply` 那份**已经被缓存的旧代码**——包换了、`apply` 跑了、行为却还是旧的。实测过一次：重装后 profile 里的 `lib/index.js` 与本地产物字节一致、确实含新代码，但补丁返回的降级文本仍是旧的。**换了代码必须重启，没有例外。**
 
 ## 验收
 
