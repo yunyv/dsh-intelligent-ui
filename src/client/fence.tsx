@@ -29,10 +29,11 @@
  */
 
 import { createRoot } from 'react-dom/client'
-import { useEffect, useState } from 'react'
-import type { ArtifactMeta } from '../meta.ts'
-import { asHtmlMeta } from '../meta.ts'
-import { ArtifactFrame } from './ArtifactView.tsx'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { asDilMeta, asHtmlMeta, type ArtifactMeta, type ArtifactMetaDil } from '../meta.ts'
+import { ArtifactFrame, interactionReport } from './ArtifactView.tsx'
+import { mountDilView } from './dil/mount.ts'
+import type { DilMountHandle } from './dil/types.ts'
 import { artifactStore, panelOpener, sessionInput } from './store.ts'
 
 /** Fence language that claims an artifact position. */
@@ -110,9 +111,10 @@ function FenceCard({ id }: { id: string }): React.ReactNode {
 
 	// The marker names an artifact whose payload is one of two shapes. The HTML
 	// path mounts a frame here; the DIL path mounts the compiled program's own
-	// view, which is a separate host and lands as its own component.
+	// view, which is a separate host.
 	const html = meta === undefined ? undefined : asHtmlMeta(meta)
-	if (meta !== undefined && html === undefined) return <DilFence id={id} meta={meta} />
+	const dil = meta === undefined ? undefined : asDilMeta(meta)
+	if (dil !== undefined) return <DilFence id={id} meta={dil} />
 	return (
 		<ArtifactFrame
 			callId={`fence:${id}`}
@@ -123,18 +125,116 @@ function FenceCard({ id }: { id: string }): React.ReactNode {
 	)
 }
 
+/** Latest keyed state per artifact, so a remount restores where the user left off. */
+const dilState = new Map<string, Record<string, unknown>>()
+
+const DIL_HEADER: React.CSSProperties = {
+	display: 'flex',
+	alignItems: 'baseline',
+	gap: 8,
+	flexWrap: 'wrap',
+	fontSize: 12,
+	opacity: 0.75,
+	marginBottom: 6
+}
+
+const DIL_ACTION: React.CSSProperties = {
+	border: '1px solid var(--dsw-alias-border-l2, #ccc)',
+	background: 'transparent',
+	color: 'inherit',
+	borderRadius: 6,
+	padding: '2px 8px',
+	font: 'inherit',
+	fontSize: 11,
+	cursor: 'pointer'
+}
+
 /**
- * The DIL revision mounted at its marker.
+ * The compiled interface, mounted at its marker.
  *
- * Until the compiled-program host lands this states the situation rather than
- * drawing an empty box: an artifact that silently renders nothing reads as a
- * broken answer.
+ * The program is pushed into one long-lived runtime rather than remounted per
+ * revision: the sandbox, the render tree and the user's control state all
+ * survive a patch, which is the whole reason this path is compiled rather than
+ * framed. The chrome is React; the interface itself is drawn by the DIL renderer
+ * as plain DOM inside a shadow root, so host styles cannot reach it and the
+ * theme tokens still cross the boundary.
+ *
+ * @param props - the revision to mount and the id its marker claimed.
+ * @returns the card.
  */
-function DilFence({ id, meta }: { id: string, meta: ArtifactMeta }): React.ReactNode {
+function DilFence({ id, meta }: { id: string, meta: ArtifactMetaDil }): React.ReactNode {
+	const hostRef = useRef<HTMLDivElement | null>(null)
+	const handleRef = useRef<DilMountHandle | null>(null)
+	const stateRef = useRef<Record<string, unknown>>(dilState.get(id) ?? {})
+	const [stateCount, setStateCount] = useState(() => Object.keys(stateRef.current).length)
+	const [notice, setNotice] = useState<string | null>(null)
+	const compiled = meta.dil
+	const ready = compiled.code.length > 0
+
+	// One sandbox per artifact. Revisions ride `update`; only the identity or a
+	// document that has not been compiled yet rebuilds it.
+	useEffect(() => {
+		const host = hostRef.current
+		if (host === null || !ready) return
+		const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' })
+		const handle = mountDilView(shadow, {
+			onStateChange: (state) => {
+				stateRef.current = state
+				dilState.set(id, state)
+				setStateCount(Object.keys(state).length)
+			},
+			// The mount already forwards the event into the sandbox, which is what
+			// makes the interface respond; this is only the observation point.
+			onEvent: () => {},
+			appData: compiled.appData
+		})
+		handleRef.current = handle
+		if (Object.keys(stateRef.current).length > 0) handle.setState(stateRef.current)
+		return () => {
+			handle.destroy()
+			handleRef.current = null
+		}
+		// `compiled` is deliberately not a dependency: a new revision of the same
+		// document is pushed through `update`, not a rebuild.
+	}, [id, ready])
+
+	useEffect(() => {
+		if (!ready) return
+		handleRef.current?.update(compiled)
+	}, [compiled, ready])
+
+	const submit = useCallback(() => {
+		const inputActions = sessionInput.current
+		if (inputActions === undefined) {
+			setNotice('当前会话没有可用的回注通道')
+			return
+		}
+		const span = inputActions.captureInsertion()
+		if (!inputActions.insertText(interactionReport(meta, stateRef.current), span)) {
+			setNotice('插入被拒绝：草稿已变化，请重试')
+			return
+		}
+		inputActions.submit()
+		setNotice('已把当前设置发回会话')
+	}, [meta])
+
 	return (
-		<div style={{ border: '1px solid var(--dsw-alias-border-l1, #ddd)', borderRadius: 8, padding: '10px 12px', fontSize: 12, opacity: 0.75, lineHeight: 1.7 }}>
-			<div><span style={{ fontWeight: 500 }}>{meta.title}</span> · v{meta.version} · {id}</div>
-			<div>{meta.dil?.stateKeys.length ?? 0} 个控件状态已编译，界面宿主待接入。</div>
+		<div>
+			<div style={DIL_HEADER}>
+				<span style={{ fontWeight: 500 }}>{meta.title}</span>
+				<span>v{meta.version}</span>
+				<span style={{ opacity: 0.55 }}>{id}</span>
+				<span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+					<button type="button" style={DIL_ACTION} onClick={submit} disabled={stateCount === 0}>
+						把当前设置交回对话
+					</button>
+					<button type="button" style={DIL_ACTION} onClick={() => panelOpener.current?.(id)}>在侧栏打开</button>
+				</span>
+			</div>
+			{ready
+				? <div ref={hostRef} />
+				: <div style={{ fontSize: 12, opacity: 0.6 }}>正在编译界面…</div>}
+			{notice !== null && <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>{notice}</div>}
 		</div>
 	)
 }

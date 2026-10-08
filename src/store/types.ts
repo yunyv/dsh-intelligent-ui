@@ -13,7 +13,7 @@
  * @module dsh-genui/store/types
  */
 
-import type { ArtifactMode, ArtifactRender } from '../meta.ts'
+import type { ArtifactEngine, ArtifactMode, ArtifactRender } from '../meta.ts'
 
 /** What produced one version. Every version records its own provenance. */
 export type ArtifactAction = 'create' | 'patch' | 'append' | 'restore'
@@ -40,6 +40,8 @@ export interface ArtifactVersionMeta {
 	/** Title as of this version. */
 	title: string
 	mode: ArtifactMode
+	/** Rendering path, fixed when the artifact is created. */
+	engine: ArtifactEngine
 	/** Owning session, so a session-scoped catalog can filter. */
 	sessionId?: string
 }
@@ -59,6 +61,8 @@ export interface ArtifactSummary {
 	sessionId?: string
 	title: string
 	mode: ArtifactMode
+	/** Rendering path, fixed when the artifact is created. */
+	engine: ArtifactEngine
 	/** Epoch milliseconds of version 1. */
 	createdAt: number
 	/** Epoch milliseconds of the head version. */
@@ -99,6 +103,8 @@ export interface CreateInput {
 	source: string
 	/** Defaults to `"inline"`. */
 	mode?: ArtifactMode
+	/** Rendering path; defaults to the compiled-interface path. */
+	engine?: ArtifactEngine
 	/** Defaults to `"created"`. */
 	changelog?: string
 	/** Preserve a legacy creation time (migrate path). Defaults to now. */

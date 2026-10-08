@@ -201,7 +201,8 @@ export class ArtifactStore {
 				createdAt,
 				action: 'create',
 				title,
-				mode
+				mode,
+				engine: input.engine === 'html' ? 'html' : 'dil'
 			}
 			writeVersionFiles(this.#paths, meta, bytes)
 			const summary = summaryFromHead(meta, 1, createdAt)
@@ -536,7 +537,9 @@ export class ArtifactStore {
 				createdAt,
 				action: plan.action,
 				title: plan.title,
-				mode: plan.mode
+				mode: plan.mode,
+				// The path is fixed at creation: a revision recompiles the same way.
+				engine: head.engine
 			}
 			writeVersionFiles(this.#paths, meta, bytes)
 			const summary = summaryFromHead(meta, entry.versionCount + 1, entry.createdAt)
@@ -576,7 +579,8 @@ function publicMeta(meta: VersionFile): ArtifactVersionMeta {
 		createdAt: meta.createdAt,
 		action: meta.action,
 		title: meta.title,
-		mode: meta.mode
+		mode: meta.mode,
+		engine: meta.engine
 	}
 }
 

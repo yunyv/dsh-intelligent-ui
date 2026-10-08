@@ -464,7 +464,7 @@ export function ArtifactFrame({ callId, meta, pumpHtml, inputActions, onOpenPane
 }
 
 /** The message a submitted interaction becomes in the conversation. */
-function interactionReport(meta: ArtifactMeta, data: unknown): string {
+export function interactionReport(meta: ArtifactMeta, data: unknown): string {
 	const body = JSON.stringify(data ?? null, null, 2)
 	return [
 		`我在 artifact「${meta.title}」（${meta.id}，v${meta.version}）里的交互数据：`,

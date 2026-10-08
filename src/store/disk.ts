@@ -276,6 +276,7 @@ export function summaryFromHead(head: VersionFile, versionCount: number, created
 		...(head.sessionId === undefined ? {} : { sessionId: head.sessionId }),
 		title: head.title,
 		mode: head.mode,
+		engine: head.engine,
 		createdAt,
 		updatedAt: head.createdAt,
 		version: head.versionNumber,
@@ -303,6 +304,7 @@ function isSummary(value: unknown): value is ArtifactSummary {
 		typeof row.id === 'string' &&
 		typeof row.title === 'string' &&
 		(row.mode === 'inline' || row.mode === 'wide') &&
+		(row.engine === 'dil' || row.engine === 'html') &&
 		typeof row.createdAt === 'number' &&
 		typeof row.updatedAt === 'number' &&
 		typeof row.version === 'number' &&

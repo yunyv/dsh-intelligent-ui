@@ -175,13 +175,13 @@ describe('browser half', () => {
 		expect(markup).not.toContain('<iframe')
 	})
 
-	it('renders a streaming revision while the call is still running', () => {
+	it('renders a streaming HTML revision while the call is still running', () => {
 		const View = componentFor('tool.call.toolview', 'artifact')
 		const markup = renderToStaticMarkup(
 			React.createElement(View as never, {
 				callId: 'call-2',
 				phase: 'start',
-				block: { phase: 'start', argsRaw: '{"action":"create","title":"流式中","html":"<b>partial</b>"}' }
+				block: { phase: 'start', argsRaw: '{"action":"create","engine":"html","title":"流式中","html":"<b>partial</b>"}' }
 			} as never)
 		)
 		expect(markup).toContain('sandbox="allow-scripts allow-modals"')
@@ -191,6 +191,21 @@ describe('browser half', () => {
 		expect(markup).toContain('dsh-artifact-root')
 		expect(markup).toContain('dsh-artifacts:height')
 		expect(markup).toContain('dsh-artifacts:collect')
+	})
+
+	it('says so instead of framing a DIL revision that has not been compiled yet', () => {
+		// A partial document carries its source but no program, so there is nothing
+		// to mount. Framing it would render an empty box that reads as broken.
+		const View = componentFor('tool.call.toolview', 'artifact')
+		const markup = renderToStaticMarkup(
+			React.createElement(View as never, {
+				callId: 'call-3',
+				phase: 'start',
+				block: { phase: 'start', argsRaw: '{"action":"create","title":"计划器","source":"{@body const [n,setN] = DIL.useState(3)}"}' }
+			} as never)
+		)
+		expect(markup).toContain('正在生成界面')
+		expect(markup).not.toContain('<iframe')
 	})
 
 	it('renders a later patch as a row, so patching adds no frame', () => {
