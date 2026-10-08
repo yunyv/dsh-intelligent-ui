@@ -38,15 +38,17 @@
 
 - **宿主半**（Node，ESM）：编译 DIL、落盘产物、维护版本。编译放这里是因为要持久化
   `fallbackMarkdown` 与 `stateKeys`，回放时不必重编。
-- **客户端半**（浏览器，CJS bundle）：为了**渐进渲染**，客户端会用同一份编译器对
-  **流式到达的部分源码**再做一次编译，边收边画。同一份代码两处调用，不是两套实现。
+- **客户端半**（浏览器，CJS bundle）：挂载编译产物。**它不编译**——编译器用 `node:vm`
+  做语法校验，进了浏览器包会在运行时炸。代价是流式期只显示一行「正在生成界面」，
+  落定后界面一次出现；这是刻意的取舍，不是遗漏。
 
 ## 四个接缝（上游是独立应用，我们是插件）
 
 上游 `vendor/dil-replica/` 是个 Node HTTP 服务 + 聊天页。接缝只有四处：
 
-1. **流从哪来**：上游读 SSE（`{p,o,v}` 补丁）。我们读 DSH 工具参数的流式片段。
-   → 客户端直接对累积的 `source` 前缀调编译器，不需要补丁通道。
+1. **流从哪来**：上游读 SSE（`{p,o,v}` 补丁）。我们读 DSH 的工具参数。
+   → 编译器在宿主半跑一次，编译产物随工具结果落到会话日志；客户端的流式期只显示
+   一行「正在生成界面」，不重编。
 2. **渲染到哪**：上游 `mount(container, tree)` 直接画 DOM。我们画进 **Shadow DOM**，
    主题变量穿透影子边界。
 3. **状态往哪存**：上游 `POST /dil/view_state`。我们存产物层（`src/store/`）。
@@ -81,16 +83,26 @@ interface ArtifactMeta {
 工具文本（模型看到的那一行）保持一句话确认。`fallbackMarkdown` 是否随确认一起返回，
 由 config 开关控制（默认开），因为它同时解决 TUI/headless 与复制粘贴。
 
-## 接线顺序（等 A/B/C 的接口落地后机械执行）
+## 模块分工
 
-1. `src/meta.ts`：加 `engine`、`dil`、`sha256`，`artifactMetaFrom` 按 engine 分支校验
-2. `src/index.ts`：参数加 `source`（DIL）与 `engine`；`create` 调 `compileDil()`；
-   `patch` 对 source 做文本替换后重编；`read`/`list` 走产物层
-3. `src/registry.ts` → `src/store/`：进程内 Map 换成落盘实现，工具与客户端都读它
-4. `src/client/index.tsx`：`tool.call.toolview` 视图与 fence 通道按 `meta.engine` 分派
-5. `src/client/DilCard.tsx`（新）：Shadow DOM 宿主 + `mountDilView()`；
-   流式期用 `source` 前缀编译做预览
-6. 端到端：生成 → 原地 patch → 交互回注 → 重启后仍可 patch
+| 文件 | 职责 |
+|---|---|
+| `src/tool.ts` | 工具的全部判断。**不 import 任何 `@deepseek-ai/*`**，所以能被单测直接驱动 |
+| `src/index.ts` | harness 绑定：Config、产物层根目录、注册、呈现钩子 |
+| `src/dil/` | 移植来的流式 DSL 编译器（宿主半） |
+| `src/store/` | 落盘产物层：不可变追加版本、乐观并发、`recover()` |
+| `src/client/dil/` | 沙箱、渲染树渲染器、补丁模型、状态回环（浏览器半） |
+| `src/client/fence.tsx` | 围栏认领 + 按 engine 分派；DIL 视图挂进 Shadow DOM |
+| `assets/genui-skill.md` | DIL 作者契约，作为 bundled skill 按需加载 |
+
+工具逻辑与 harness 绑定分开的原因是可测性：harness 的工具注册表声明了十个 peer，
+只装类型检查依赖时并不齐备；合在一起就等于"只能在跑起来的 Host 里测"。
+
+## 尚欠
+
+- **端到端在真实会话里验证**：需要重启 App（宿主半的包元数据缓存在进程内），
+  重启会结束当前会话。验收命令见 README。
+- 逃生舱（`engine: "html"`）沿用前身实现，CopilotKit 式的参数顺序流式尚未接入。
 
 ## 验收
 
