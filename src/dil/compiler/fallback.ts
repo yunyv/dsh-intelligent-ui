@@ -1,10 +1,15 @@
 /**
  * The degraded rendering: a static markdown projection of the source, for clients
- * without a sandbox (and for search snippets). Nothing is executed, so dynamic
- * interpolations are dropped and the first branch of every `{#if}` stands in for it.
+ * without a sandbox (and for search snippets). Nothing is executed, so a dynamic
+ * interpolation is printed as the expression that produced it — `n = {n}` rather
+ * than `n = ` — and the first branch of every `{#if}` stands in for it.
  *
  * Ported from `vendor/dil-replica/replica/server/compiler/fallback.js` (MIT,
- * Disdjj/intelligent-ui-demo @938ab09) — behaviour unchanged.
+ * Disdjj/intelligent-ui-demo @938ab09), with one deliberate change: upstream drops
+ * interpolation nodes entirely, which is invisible when they carry a badge label
+ * and unreadable when they sit inside a sentence. Printing the source costs
+ * nothing and names what belongs in the gap. Recorded in
+ * `tests/dil/parity.spec.ts`.
  * @module dsh-genui/dil/compiler/fallback
  */
 
@@ -25,7 +30,11 @@ export function toFallback(nodes: DilNode[], ctx: FallbackContext = { listDepth:
 			continue
 		}
 		if (node.type === 'each') { out.push(toFallback(node.body, ctx)); continue }
-		if (node.type !== 'element') continue // expr / stmt carry no static text
+		// An expression has no value here, but silence leaves a hole in the sentence
+		// it sits in. The source is the honest stand-in: it says a value goes here
+		// and, for a model re-reading its own projection, which one.
+		if (node.type === 'expr') { out.push(`{${node.code}}`); continue }
+		if (node.type !== 'element') continue // stmt carries no static text
 		out.push(elementFallback(node, ctx))
 	}
 	return out.join('').replace(/\n{3,}/g, '\n\n')

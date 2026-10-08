@@ -95,14 +95,52 @@ const SNIPPETS = [
 	'<box><text>{"emoji 🚀🛰️🎯"}</text></box>'
 ]
 
-/** Every field, one assertion each, so a failure names the field that drifted. */
+/**
+ * Every field, one assertion each, so a failure names the field that drifted.
+ *
+ * `fallbackMarkdown` is compared by direction rather than by bytes — see
+ * {@link assertFallbackIsNotThinner} for what is left to check, and the second
+ * divergence test below for the change itself.
+ */
 function assertSame(name: string, source: string): void {
 	const mine = stable(compile(source))
 	const theirs = stable(vendorCompiler.compile(source))
 	expect(Object.keys(mine), `${name} · field order`).toEqual(Object.keys(theirs))
 	for (const key of Object.keys(theirs)) {
+		if (key === 'fallbackMarkdown') continue
 		expect(JSON.stringify(mine[key]), `${name} · field ${key}`).toBe(JSON.stringify(theirs[key]))
 	}
+	assertFallbackIsNotThinner(name, String(mine.fallbackMarkdown), String(theirs.fallbackMarkdown))
+}
+
+/** Whether any node in the tree is an interpolation. */
+function hasInterpolation(nodes: unknown): boolean {
+	if (Array.isArray(nodes)) return nodes.some(hasInterpolation)
+	if (nodes === null || typeof nodes !== 'object') return false
+	const row = nodes as Record<string, unknown>
+	if (row.type === 'expr') return true
+	return Object.values(row).some(hasInterpolation)
+}
+
+/**
+ * The degraded projection changed shape, not just text.
+ *
+ * Upstream drops interpolation nodes and we print their source, which is not a
+ * cosmetic difference: a heading whose whole content was dynamic survives our tidy
+ * step and vanishes from upstream's, and the spacing left inside an emptied
+ * `badge` differs. Measured on the captured artifact the two projections are 41 and
+ * 36 non-empty lines, so no line or byte relation is left to assert.
+ *
+ * What the large corpora can still assert is the direction that would be a
+ * regression if it flipped: ours must never say less than upstream's.
+ * @param name - the case name, for the failure message.
+ * @param ours - our projection.
+ * @param theirs - upstream's.
+ */
+function assertFallbackIsNotThinner(name: string, ours: string, theirs: string): void {
+	const spoken = (markdown: string): number => markdown.split('\n').filter(line => line.trim().length > 0).length
+	expect(spoken(ours), `${name} · degraded projection lost lines upstream kept`).toBeGreaterThanOrEqual(spoken(theirs))
+	expect(ours.length, `${name} · degraded projection is shorter than upstream's`).toBeGreaterThanOrEqual(theirs.length)
 }
 
 test('the captured artifact compiles identically, whole and at every 97th prefix', () => {
@@ -133,7 +171,25 @@ test('hand-picked edge shapes compile identically', () => {
 	for (const source of SNIPPETS) assertSame(JSON.stringify(source), source)
 })
 
-test('the one intentional divergence: a closing tag inside a block no longer swallows the document', () => {
+test('the second intentional divergence: an interpolation keeps its place in the degraded projection', () => {
+	// Upstream drops the interpolation node outright. Where it carried a badge label
+	// that reads fine, but inside a sentence it leaves a hole: a terminal reader gets
+	// `n =  时` and cannot tell that a value was ever meant to sit there. We print the
+	// expression's own source, so the gap names what belongs in it.
+	const source = '<box><text>n = {n} 时，差距约 {ratio} 倍。</text></box>'
+	const ours = compile(source).fallbackMarkdown
+	const upstream = vendorCompiler.compile(source).fallbackMarkdown
+
+	expect(upstream, 'upstream leaves the hole').toContain('n =  时')
+	expect(upstream).not.toContain('{n}')
+	expect(ours, 'we name the gap').toContain('n = {n} 时，差距约 {ratio} 倍。')
+	// And the difference is exactly the placeholders, nothing else.
+	// The controlled source here has no nested braces, so removing the placeholders
+	// is unambiguous: what is left must be exactly upstream's projection.
+	expect(ours.replace(/\{[^{}]*\}/gu, '')).toBe(upstream)
+})
+
+test('the first intentional divergence: a closing tag inside a block no longer swallows the document', () => {
 	// Upstream `readClosingTag` reported only `{ at, terminator }`, so a `</tag>` that
 	// closed the *surrounding* element from inside a `{#if}` / `{#each}` body reached
 	// `closeBlock` with `length === undefined`: `ctx.i += undefined` → NaN, the sibling
@@ -183,10 +239,19 @@ test('the exported helpers return the same values as upstream', () => {
 		expect(tidyFallback(md), md).toBe(vendorCompiler.tidyFallback(md))
 	}
 
-	// the fallback projection runs on upstream's own AST, so the walkers are compared directly
+	// The fallback walkers are compared directly, on upstream's own AST.
+	//
+	// The split is exact rather than heuristic: a tree with no interpolation node is
+	// untouched by the divergence, so the two walkers must agree byte for byte. A
+	// tree that has one differs by design, and is compared by direction. (Deciding
+	// it from the source text instead does not work — braces are literal inside a
+	// `<code>` body, and expression code can nest them.)
 	for (const src of SNIPPETS) {
 		const nodes = vendorCompiler.parse(src).nodes as DilNode[]
-		expect(toFallback(nodes), JSON.stringify(src)).toBe(vendorCompiler.toFallback(nodes))
+		const ours = toFallback(nodes)
+		const theirs = vendorCompiler.toFallback(nodes)
+		if (hasInterpolation(nodes)) assertFallbackIsNotThinner(JSON.stringify(src), ours, theirs)
+		else expect(ours, JSON.stringify(src)).toBe(theirs)
 	}
 
 	const steps = [8045, 8150, 8300, 8500, 9000].map((n) => compile(CAPTURED.slice(0, n)).genuiComponents)
