@@ -211,6 +211,30 @@ function degraded(compiled: DilCompiled, include: boolean): string {
 	return `\n\nA plain-text rendering of the interface, for terminals and clients without the browser half:\n\n${body}`
 }
 
+/**
+ * Resolve an artifact this session is allowed to touch.
+ *
+ * Ownership is enforced on every action, not only on writes: a session must not
+ * be able to read or destroy another session's artifact just because it guessed
+ * the id. An artifact the caller does not own is reported exactly like one that
+ * does not exist, so the refusal itself leaks nothing.
+ *
+ * @param store - the artifact catalog.
+ * @param id - the id the model passed.
+ * @param sessionId - the calling session, when the caller has one.
+ * @param action - the action name, for the message.
+ * @returns the current revision.
+ */
+function owned(store: ArtifactStore, id: string, sessionId: string | undefined, action: string): ArtifactRecord {
+	const record = store.get(id)
+	if (record !== undefined && (sessionId === undefined || record.sessionId === sessionId)) return record
+	const known = store.list(sessionId)
+	const available = known.length === 0
+		? 'This session has no artifacts yet.'
+		: `Known ids: ${known.map(entry => `${entry.id} ("${entry.title}", v${String(entry.version)})`).join(', ')}.`
+	throw new Error(`artifact ${action}: unknown id "${id}". ${available}`)
+}
+
 /** Arguments that only read, so sibling calls cannot conflict. */
 export function isConcurrencySafe(args: { action?: string }): boolean {
 	return args.action === 'read' || args.action === 'list' || args.action === undefined
@@ -274,14 +298,7 @@ export async function runArtifact(
 
 	if (action === 'patch') {
 		const id = required(str('id'), 'id', action)
-		const current = store.get(id)
-		if (current === undefined || (sessionId !== undefined && current.sessionId !== sessionId)) {
-			const known = store.list(sessionId)
-			const available = known.length === 0
-				? 'This session has no artifacts yet.'
-				: `Known ids: ${known.map(entry => `${entry.id} ("${entry.title}", v${String(entry.version)})`).join(', ')}.`
-			throw new Error(`artifact patch: unknown id "${id}". ${available}`)
-		}
+		const current = owned(store, id, sessionId, action)
 		const oldString = required(str('old_string'), 'old_string', action)
 		const newString = str('new_string') ?? ''
 		// Apply once up front so a bad match fails with its located message and the
@@ -324,8 +341,7 @@ export async function runArtifact(
 
 	if (action === 'read') {
 		const id = required(str('id'), 'id', action)
-		const record = store.get(id)
-		if (record === undefined) throw new Error(`artifact read: unknown id "${id}".`)
+		const record = owned(store, id, sessionId, action)
 		return {
 			note: `Artifact ${record.id} "${record.title}" v${String(record.version)} — current source follows.\n\n${record.source}`,
 			meta: null
@@ -340,6 +356,8 @@ export async function runArtifact(
 	}
 
 	const id = required(str('id'), 'id', 'destroy')
+	// Resolved first so another session's artifact cannot be destroyed by id guess.
+	owned(store, id, sessionId, 'destroy')
 	const existed = store.destroy(id)
 	return {
 		note: existed ? `Destroyed artifact ${id}. Its rendered cards stay in the transcript but no longer accept patches.` : `artifact destroy: unknown id "${id}".`,

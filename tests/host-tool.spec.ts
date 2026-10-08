@@ -189,13 +189,31 @@ describe('patch', () => {
 			.rejects.toThrow(/Known ids:/u)
 	})
 
-	it('does not reach an artifact owned by another session', async () => {
+	it('refuses every action from another session, and leaks nothing by refusing', async () => {
 		const store = open()
 		const run = bind(store)
-		const created = await run({ action: 'create', source: DIL }, 'session-a')
+		const created = await run({ action: 'create', title: '甲的产物', source: DIL }, 'session-a')
 		const id = metaOf(created).id as string
-		await expect(run({ action: 'patch', id, old_string: 'a', new_string: 'b' }, 'session-b'))
-			.rejects.toThrow(/unknown id/u)
+
+		// Reading and destroying are refused too, not only writing: guessing an id
+		// must not reach a session you are not in.
+		for (const args of [
+			{ action: 'patch', id, old_string: 'DIL.useState(5)', new_string: 'DIL.useState(6)' },
+			{ action: 'read', id },
+			{ action: 'destroy', id }
+		]) {
+			await expect(run(args, 'session-b')).rejects.toThrow(/unknown id/u)
+		}
+
+		// The refusal must not describe what exists elsewhere: the intruder is told
+		// it has nothing, not that this id belongs to someone else.
+		const refusal = await run({ action: 'read', id }, 'session-b')
+			.then(() => undefined, (error: Error) => error.message)
+		expect(refusal).toContain('unknown id')
+		expect(refusal).not.toContain('甲的产物')
+
+		// And the artifact is untouched.
+		expect((await run({ action: 'read', id }, 'session-a')).note).toContain('v1')
 	})
 })
 
