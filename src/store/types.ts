@@ -138,8 +138,6 @@ export interface RestoreInput {
 	expectedLatestVersion?: number
 	/** Defaults to `restored from v<N>`. */
 	changelog?: string
-	/** Restored version's title; defaults to the current head's title. */
-	title?: string
 }
 
 /** Construction options. Every knob is injectable so tests stay hermetic. */
@@ -180,13 +178,13 @@ export interface RecoverReport {
 /** What {@link ArtifactStore.verify} found for one artifact. */
 export interface VerifyReport {
 	id: string
-	/** Versions in the chain. */
+	/** Version files found on disk: the chain plus anything past a hole. */
 	versions: number
 	/** Content files hashed and compared. */
 	checked: number
 	/** Version numbers whose sha256 or byte length disagreed. */
 	mismatched: number[]
-	/** Version numbers whose content file is missing or unreadable. */
+	/** Version numbers whose sidecar or content file is missing or unreadable. */
 	unreadable: number[]
 }
 
