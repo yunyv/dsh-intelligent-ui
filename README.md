@@ -27,18 +27,41 @@ bash scripts/reinstall-desktop.sh
 
 ## 状态
 
-工程与测试已完成；**在运行中的 App 里尚未激活过**，因为激活需要一次重启，而重启会结束做开发的会话。
+两半都已在运行中的 App 里激活过（不需要重启，见下节的坑）。**尚未验证的是真实会话里的渲染与交互**，那需要一个能把 `artifact` 写进工具调用的回合。
 
-已验证的部分：
+已在真实 Host 上验过：
 
-- `pnpm run check` 全绿：`typecheck` 三个工程 + `tsdown` 构建 + **330 个自有测试** + **98 个上游测试**
+- `plugin_manager list_plugins` → `include:dsh-genui` 的 `fiberPhase` 是 `active`
+- `host/Tool/listTools` → 有 `artifact`，描述是两条路径的新版
+- `client/Slots/listSubTree root=sidebar.right.pane.tab` → 占用者有 `{registrant:"dsh-genui", key:"dsh-genui:panel", active:true}`
+- `skill genui` → 走真实技能注册表加载出完整契约，base directory 指向已安装包内的 `assets/`
+
+已验证的工程面：
+
+- `pnpm run check` 全绿：`typecheck` 三个工程 + `tsdown` 构建 + **337 个自有测试** + **98 个上游测试**
 - 编译链路端到端跑通（在测试里）：`compileDil` → Worker → 渲染树 → renderer → Shadow DOM → 点击 → trigger → 新树 + `stateChanged`
 - 客户端半以**构建产物** `lib/client.js` 走真实 `__ModuleLoader__.load` 契约加载，断言注册到 `tool.call.toolview` 的 `artifact` 键
+- 围栏按 `engine` 分派：编译产物挂进 Shadow DOM，原始文档走帧
 - 产物层用**两个真实 OS 进程**验证：A 进程写到 v3，B 进程读回同一 sha 并续写到 v4
 
-未验证的部分：真实会话里生成一张卡片、跟随主题、交互回注、重启后仍可 patch。重启后按下节验收。
+尚未验证：真实会话里生成一张卡片、跟随主题、交互回注、重启后仍可 patch。
 
-## 重启后验收
+## 两个踩过的坑
+
+**一、宿主半的加载是静默失败的。** 一个解析不到的说明符不会在对话里留下任何痕迹——条目只是变成 `fiberPhase: failed`，工具凭空消失。这次就是这么栽的：`@deepseek-ai/dsh-skill` 为了拿类型被写进 `peerDependencies`，打包器因此把它外置，而运行时并不提供它（连它自己的 peer 也不提供）。`inject`、Config、技能全对，插件却一个字节都没跑起来。
+
+只用到一个值，而且是个常量（`BUNDLED_SKILL_RANK = 600`），其余全是类型——把常量写出来就彻底去掉了这个运行期依赖。`tests/host-bundle.spec.ts` 现在把"构建产物只能 import 运行时真有的东西"变成硬约束，因为这种故障没有别的办法在评审里看出来。
+
+**二、失败的否定结论会被缓存，但可以就地重置。** Host 缓存"这个包导不进来"直到进程结束。不用重启的解法是把插件条目关掉再开：
+
+```
+plugin_manager set_plugin target=include:dsh-genui enabled=false
+plugin_manager set_plugin target=include:dsh-genui enabled=true
+```
+
+条目会被重新导入，`fiberPhase` 从 `failed` 变 `active`。**注意 target 要用 `include:` 前缀的 entryId**，用包名会回 `unknown-plugin`。
+
+## 验收
 
 ```
 cordis_inspect_query client/Slots/listSubTree root=tool.call.toolview
@@ -51,7 +74,7 @@ cordis_inspect_query host/Config listConfigs name=dsh-genui
   → 应有四个配置项
 ```
 
-然后在真实会话里走一遍：
+激活的四条已经在真实 Host 上全过，上面那组命令留作回归复查。剩下的是真实会话里的五步：
 
 1. 让它做一个能调参的东西（例如「做个能改人数和付费周期的团队订阅成本计算器」）。卡片应当出现在它写标记的那一行，跟随明暗主题。
 2. 改一个滑块，点「把当前设置交回对话」。下一轮它应当知道你改成了多少。
