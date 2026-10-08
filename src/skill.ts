@@ -11,15 +11,27 @@
  */
 
 import { readFile } from 'node:fs/promises'
-import {
-	BUNDLED_SKILL_RANK,
-	type SkillCandidate,
-	type SkillDefinition,
-	type SkillProvider,
-} from '@deepseek-ai/dsh-skill'
+import type { SkillCandidate, SkillDefinition, SkillProvider } from '@deepseek-ai/dsh-skill'
 import { SKILL_BODY_PATH, SKILL_BODY_URL, SKILL_RESOURCE_DIR } from './paths.ts'
 
 const PROVIDER_NAME = 'dsh-genui'
+
+/**
+ * Rank this provider's candidates carry, mirroring the registry's own
+ * `BUNDLED_SKILL_RANK`.
+ *
+ * Written out rather than imported on purpose. The runtime does not carry
+ * `@deepseek-ai/dsh-skill` — the package declares peers it does not ship, so a
+ * value import compiles to a specifier that cannot resolve and the entire host
+ * half fails to load with `fiberPhase: failed`, which is exactly what happened
+ * here. Only one value was ever needed from that package and it is a constant;
+ * everything else this module uses is a type, and a type erases.
+ *
+ * Rank only breaks ties between same-named candidates inside one layer, and this
+ * provider's name is unique, so the number is a formality. `tests/host-bundle.
+ * spec.ts` keeps the resolved output honest about it.
+ */
+const BUNDLED_SKILL_RANK = 600
 
 const RESOURCE_BASE = {
 	kind: 'directory',
