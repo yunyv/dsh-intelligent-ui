@@ -18,13 +18,15 @@
     "types": ["node"]
   },
   "include": [
-    "src/index.ts",
-    "src/meta.ts",
-    "src/normalize.ts",
-    "src/patch.ts",
-    "src/registry.ts",
-    "tests/unit.spec.ts",
-    "tests/host-tool.spec.ts"
+    "src/**/*.ts",
+    "tests/**/*.ts"
   ],
-  "exclude": []
+  "exclude": [
+    "src/client/**",
+    "tests/client/**",
+    "tests/fence.spec.ts",
+    "tests/client-bundle.spec.ts",
+    "vendor/**",
+    "lib/**"
+  ]
 }

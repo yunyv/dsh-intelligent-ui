@@ -4,8 +4,10 @@
     "types": ["node"]
   },
   "include": [
-    "tests/client-bundle.spec.ts",
-    "tests/fence.spec.ts"
+    "tests/client/**/*.ts",
+    "tests/client/**/*.tsx",
+    "tests/fence.spec.ts",
+    "tests/client-bundle.spec.ts"
   ],
   "exclude": []
 }
