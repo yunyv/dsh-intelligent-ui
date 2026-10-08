@@ -287,9 +287,18 @@ export function streamingMetaFromArgs(raw: string | undefined, engine?: Artifact
 		sizeBytes: 0
 	}
 	if (path === 'html') {
+		const css = partialStringField(raw, 'css')
 		const html = partialStringField(raw, 'html')
-		if (html === undefined || html.length === 0) return undefined
-		return { ...shared, html, render: 'reload', sizeBytes: html.length }
+		// The stylesheet is written before the markup and is therefore pumped first,
+		// so the preview is never a flash of unstyled content. While only the styles
+		// have landed the card shows an empty but already-styled frame, which is the
+		// point of the ordering rather than a gap in it.
+		const style = css === undefined || css.trim().length === 0 ? '' : `<style>\n${css}\n</style>\n`
+		if (html === undefined || html.length === 0) {
+			return style.length === 0 ? undefined : { ...shared, html: style, render: 'reload', sizeBytes: style.length }
+		}
+		const combined = `${style}${html}`
+		return { ...shared, html: combined, render: 'reload', sizeBytes: combined.length }
 	}
 	const source = partialStringField(raw, 'source')
 	if (source === undefined || source.length === 0) return undefined

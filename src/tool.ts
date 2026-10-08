@@ -59,7 +59,7 @@ Two ways to write it, and the default is the first.
 
 **Compiled interface (default).** Pass \`source\`: a DIL document. Write a short prose sentence, then \`{@body …}\` lines declaring everything you use, then ONE root \`<box>\`. It is compiled and run in a sandbox, so charts, sliders, tables and calculators arrive as something the user operates — and derived numbers recompute locally with no second model call. Load the \`genui\` skill before your first call: it carries the output format, the declare-before-use rules, and the full component inventory. If this session has no skill tool, read the same contract from ${SKILL_BODY_PATH} (its relative paths resolve against ${SKILL_RESOURCE_DIR}).
 
-**Raw document (escape hatch).** Pass \`engine: "html"\` and \`html\`: a self-contained document, for what a component inventory cannot express (3D, force-directed graphs, a bespoke simulation). The frame supplies the document skeleton, the theme and the security policy.
+**Raw document (escape hatch).** Pass \`engine: "html"\`, then \`css\` and \`html\`: a self-contained document, for what a component inventory cannot express (3D, force-directed graphs, a bespoke simulation). Write \`css\` first — the arguments stream in the order you write them, so the stylesheet lands before the markup and the reader never sees unstyled content. The frame supplies the document skeleton, the theme and the security policy.
 
 When to reach for either. When the answer is something to operate rather than read, and its content is substantial rather than a three-line restatement. A static node-and-edge diagram is cheaper as a Mermaid block; a real deliverable the user wants as project files is not this.
 
@@ -90,6 +90,10 @@ export const PARAMETERS = {
 	source: {
 		type: 'string',
 		description: 'create only, required on the default path: the DIL document — prose, then `{@body …}` declarations, then one root `<box>`. Load the `genui` skill for the format and the component inventory.'
+	},
+	css: {
+		type: 'string',
+		description: 'engine "html" only, and write it BEFORE `html`: the stylesheet. It streams ahead of the markup, so the reader watches a styled interface arrive instead of raw markup that snaps into place at the end. One document is stored either way.'
 	},
 	html: {
 		type: 'string',
@@ -183,6 +187,22 @@ function engineOf(value: string | undefined): ArtifactEngine {
 	return value === 'html' ? 'html' : 'dil'
 }
 
+/**
+ * Put the stylesheet ahead of the markup.
+ *
+ * The two arguments exist separately only so the reader sees them in this order:
+ * the stylesheet streams first, so the preview is styled from its first frame
+ * instead of showing raw markup and then snapping into place. Storage keeps one
+ * document, so replay and export need no second field.
+ * @param css - the model's stylesheet, when it wrote one.
+ * @param html - the model's markup.
+ * @returns one document with the stylesheet first.
+ */
+function withStyle(css: string | undefined, html: string): string {
+	if (css === undefined || css.trim().length === 0) return html
+	return `<style>\n${css.trim()}\n</style>\n${html}`
+}
+
 /** The markdown projection, appended so a surface without the browser half still shows content. */
 function degraded(compiled: DilCompiled, include: boolean): string {
 	if (!include) return ''
@@ -223,7 +243,7 @@ export async function runArtifact(
 		// The raw path normalizes away a document skeleton the frame supplies; the
 		// compiled path is source text and is taken verbatim.
 		const source = engine === 'html'
-			? normalizeArtifactSource(required(str('html'), 'html', action))
+			? normalizeArtifactSource(withStyle(str('css'), required(str('html'), 'html', action)))
 			: required(str('source'), 'source', action)
 		if (source.trim().length === 0) throw new Error('artifact create: the document is empty.')
 		const sizeBytes = engine === 'html' ? normalizedBytes(source) : new TextEncoder().encode(source).length

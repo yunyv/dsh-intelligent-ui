@@ -119,6 +119,25 @@ describe('streamingMetaFromArgs', () => {
 		expect(meta?.html).toBeUndefined()
 	})
 
+	it('applies a stylesheet that arrives before the markup', () => {
+		const raw = '{"action":"create","engine":"html","css":".card{color:red}","html":"<div class=card>x</div>"}'
+		const meta = streamingMetaFromArgs(raw)
+		expect(meta?.html?.startsWith('<style>')).toBe(true)
+		expect(meta?.html).toContain('<div class=card>')
+	})
+
+	it('starts the preview once the stylesheet is complete, before any markup', () => {
+		// The ordered arguments exist so the reader never sees unstyled content:
+		// while only the stylesheet has landed there is an empty but styled frame.
+		const meta = streamingMetaFromArgs('{"action":"create","engine":"html","css":".card{color:red}"')
+		expect(meta?.html).toContain('<style>')
+		expect(meta?.html).not.toContain('<div')
+	})
+
+	it('still waits when neither the stylesheet nor the markup has started', () => {
+		expect(streamingMetaFromArgs('{"action":"create","engine":"html"')).toBeUndefined()
+	})
+
 	it('lets an explicit caller override the path read from the stream', () => {
 		// Both payloads present, so the override is what decides, not the arguments.
 		const raw = '{"action":"create","engine":"dil","source":"<box/>","html":"<p>x</p>"}'

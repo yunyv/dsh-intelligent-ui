@@ -250,3 +250,27 @@ describe('list and destroy', () => {
 		expect((await run({ action: 'list' })).note).toContain('No artifacts')
 	})
 })
+
+describe('the ordered arguments on the raw path', () => {
+	it('stores one document with the stylesheet ahead of the markup', async () => {
+		const { run } = tool()
+		const created = await run({ action: 'create', engine: 'html', css: '.card { color: red }', html: HTML })
+		const source = metaOf(created).html as string
+		expect(source.startsWith('<style>')).toBe(true)
+		expect(source.indexOf('.card { color: red }')).toBeLessThan(source.indexOf('<div class="card">'))
+	})
+
+	it('reads it back in the same order, so replay needs no second field', async () => {
+		const { run } = tool()
+		const created = await run({ action: 'create', engine: 'html', css: '.a { color: red }', html: HTML })
+		const id = metaOf(created).id as string
+		const read = await run({ action: 'read', id })
+		expect(read.note.indexOf('<style>')).toBeLessThan(read.note.indexOf('<div class="card">'))
+	})
+
+	it('leaves the document untouched when there is no stylesheet', async () => {
+		const { run } = tool()
+		const created = await run({ action: 'create', engine: 'html', html: HTML })
+		expect(metaOf(created).html).toBe(HTML)
+	})
+})
