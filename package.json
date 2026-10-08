@@ -16,9 +16,10 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "assets",
+    "cordis.patch.yml",
     "lib",
-    "src",
-    "cordis.patch.yml"
+    "src"
   ],
   "scripts": {
     "build": "tsdown",
@@ -37,6 +38,7 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-skill": "^0.1.0-rc.6 || ^0.2.0-rc.1",
     "@deepseek-ai/dsh-tools": "^0.2.0-rc.1",
     "react": "^18.2.0"
   },
@@ -48,6 +50,7 @@
     "@deepseek-ai/dsh-client-ui-sidebar-right": "0.2.0-rc.2",
     "@deepseek-ai/dsh-client-ui-slots": "0.2.0-rc.2",
     "@deepseek-ai/dsh-client-ui-tool": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-skill": "0.2.0-rc.2",
     "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "^3.18.1",
     "@types/node": "^22.0.0",

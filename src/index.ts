@@ -13,11 +13,12 @@ import { ARTIFACT_TOOL_NAME, PLUGIN_ID, artifactMetaFrom, type ArtifactMode } fr
 import { normalizeArtifactSource, normalizedBytes } from './normalize.ts'
 import { PatchError, applyPatch, requiresReload } from './patch.ts'
 import { ArtifactRegistry, type ArtifactRecord } from './registry.ts'
+import { genuiSkillProvider } from './skill.ts'
 
 export const name = PLUGIN_ID
 
-/** The tool registry is the only service this half needs. */
-export const inject = ['tools']
+/** Services this half registers into: the tool registry and the skill registry. */
+export const inject = ['tools', 'skills']
 
 /** Deployment configuration validated by the Loader. */
 export const Config = z.object({
@@ -281,4 +282,10 @@ function processRegistry(): ArtifactRegistry {
  */
 export function apply(ctx: Context, config: PluginConfig): void {
 	ctx.tools.register(artifactTool(processRegistry(), config))
+	// The DIL dialect contract ships as a skill rather than living in the tool
+	// description: it is ~4 KB of component inventory that only matters on the
+	// turn that actually writes an interface.
+	ctx.skills.registerProvider(() => genuiSkillProvider)
 }
+
+export { SKILL_BODY_PATH, SKILL_RESOURCE_DIR } from './skill.ts'
