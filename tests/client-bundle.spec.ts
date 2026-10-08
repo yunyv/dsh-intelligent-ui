@@ -155,7 +155,7 @@ describe('browser half', () => {
 		expect(injected).toContain('tool.call.toolview')
 		expect(registrations.some(row => row.options.name === 'sidebar.right.pane.tab')).toBe(true)
 		expect(registrations.some(row => row.options.name === 'sidebar.right.pane.tab.title')).toBe(true)
-		expect(opened).toContain('type:artifacts-live')
+		expect(opened).toContain('type:dsh-genui')
 	})
 
 	it('renders a settled revision as a compact row, never a second frame', () => {

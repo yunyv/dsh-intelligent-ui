@@ -36,7 +36,7 @@ export const name = PLUGIN_ID
 export const inject = ['slots']
 
 /** Page-type discriminator for `ctx.sidebarRight.openTab`. */
-const PANEL_KIND = 'artifacts-live'
+const PANEL_KIND = 'dsh-genui'
 
 /** Registration identity; also the key the body and chip register under. */
 const PANEL_DEFINITION = `${PLUGIN_ID}:panel`
