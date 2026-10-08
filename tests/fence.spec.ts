@@ -9,6 +9,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FenceChannel, markerIdOf, markedId, reactFenceMount, readFence } from '../src/client/fence.tsx'
 import { artifactStore } from '../src/client/store.ts'
+import { compileDil } from '../src/dil/index.ts'
+import { act } from 'react'
 import type { ArtifactMeta } from '../src/meta.ts'
 
 /** One revision as the tool result would carry it. */
@@ -41,6 +43,11 @@ function markerBlock(lang: string, body: string): HTMLElement {
 	document.body.append(block)
 	return block
 }
+
+// React only flushes synchronously inside act() when the environment says so.
+// Without this it falls back to a warning and a timer, which makes the engine
+// dispatch assertions below order-dependent.
+;(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 describe('marker grammar', () => {
 	it('takes the id from a block whose fence language is the artifact fence', () => {
@@ -174,5 +181,100 @@ describe('fence poll', () => {
 		expect(clearSpy).toHaveBeenCalled()
 		setSpy.mockRestore()
 		clearSpy.mockRestore()
+	})
+})
+
+/**
+ * Which view a marker decides to mount.
+ *
+ * `fence.spec.ts` above drives the claiming rules with an injected mount, so it
+ * never reaches React. These use the real mount: the point is the dispatch — a
+ * revision that carries a compiled program must not be framed as HTML, and vice
+ * versa — because getting that wrong is a card that renders the wrong thing or
+ * nothing at all.
+ */
+describe('engine dispatch', () => {
+	beforeEach(() => {
+		document.body.innerHTML = ''
+	})
+
+	const SOURCE = `给团队算一笔账。
+
+{@body const [seats,setSeats] = DIL.useState(5)}
+{@body const total = 20 * 12 * seats}
+<box gap={4}>
+  <title size="lg">订阅成本</title>
+  <slider label="席位" value={seats} onChange={setSeats} min={1} max={50}/>
+  <title size="xl" tabularNums>{total.toLocaleString()}</title>
+</box>`
+
+	/** A revision carrying a real compiled program. */
+	function compiled(id: string) {
+		return {
+			kind: 'artifact' as const,
+			engine: 'dil' as const,
+			action: 'create' as const,
+			id,
+			title: '订阅成本',
+			version: 1,
+			mode: 'inline' as const,
+			sizeBytes: SOURCE.length,
+			session: 'session-1',
+			dil: compileDil(SOURCE)
+		}
+	}
+
+	/** The host element the channel inserted, or null. */
+	function hostFor(id: string): HTMLElement | null {
+		return document.querySelector(`[data-dsh-artifact="${id}"]`)
+	}
+
+	/** The element inside the card that carries the interface's shadow root. */
+	function shadowHostOf(host: HTMLElement): HTMLElement | undefined {
+		return [...host.querySelectorAll('*')].find(node => (node as HTMLElement).shadowRoot !== null) as HTMLElement | undefined
+	}
+
+	it('mounts the compiled interface at its marker instead of a frame', async () => {
+		artifactStore.publish(compiled('art-dil00001'))
+		const block = markerBlock('dsh-artifact', 'art-dil00001')
+		const channel = new FenceChannel(reactFenceMount)
+		await act(async () => { channel.start() })
+
+		expect(block.style.display).toBe('none')
+		const host = hostFor('art-dil00001')
+		expect(host).not.toBeNull()
+		expect(host?.textContent).toContain('订阅成本')
+		// The controls this path offers are its own; the HTML path's preview toggle
+		// must not appear, or the reader is being offered a frame that is not there.
+		expect(host?.textContent).toContain('把当前设置交回对话')
+		expect(host?.textContent).not.toContain('在此预览')
+		expect(host?.querySelector('iframe')).toBeNull()
+
+		// The interface itself is drawn by the DIL renderer inside a shadow root, so
+		// host styles cannot reach it and the theme tokens still cross.
+		const shadowHost = host === null ? undefined : shadowHostOf(host)
+		expect(shadowHost).toBeDefined()
+		expect(shadowHost?.shadowRoot).not.toBeNull()
+		expect(shadowHost?.shadowRoot?.querySelector('style')).not.toBeNull()
+
+		await act(async () => { channel.stop() })
+	})
+
+	it('keeps the raw document on a frame', async () => {
+		artifactStore.publish(artifact('art-html0001'))
+		const block = markerBlock('dsh-artifact', 'art-html0001')
+		const channel = new FenceChannel(reactFenceMount)
+		await act(async () => { channel.start() })
+
+		expect(block.style.display).toBe('none')
+		const host = hostFor('art-html0001')
+		// A framed document offers the frame’s own chrome: hand the collected
+		// interaction back, copy the source, export it. The compiled path’s control
+		// must not appear here either.
+		expect(host?.textContent).toContain('提交交互数据')
+		expect(host?.textContent).toContain('导出 HTML')
+		expect(host?.textContent).not.toContain('把当前设置交回对话')
+
+		await act(async () => { channel.stop() })
 	})
 })

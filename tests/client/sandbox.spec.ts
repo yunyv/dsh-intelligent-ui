@@ -60,6 +60,11 @@ function harness(options: Partial<DilSandboxOptions> = {}): Harness {
 		...options
 	})
 	const connected = sandbox.connect()
+	// A test that never waits for the boot must not turn the eventual timeout into an
+	// unhandled rejection: whether it lands inside the test or after it depends on how
+	// long the whole suite runs, so a file that is green alone would fail in the full
+	// run. Observing it here keeps the promise awaitable and quiet.
+	void connected.catch(() => undefined)
 	const frame = sandbox.frame!
 	const frameWindow = frame.contentWindow as unknown as { postMessage: (message: unknown) => void }
 	frameWindow.postMessage = (message: unknown) => void sent.push(message as Record<string, any>)
