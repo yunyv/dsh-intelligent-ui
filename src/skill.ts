@@ -11,22 +11,15 @@
  */
 
 import { readFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
 import {
 	BUNDLED_SKILL_RANK,
 	type SkillCandidate,
 	type SkillDefinition,
 	type SkillProvider,
 } from '@deepseek-ai/dsh-skill'
+import { SKILL_BODY_PATH, SKILL_BODY_URL, SKILL_RESOURCE_DIR } from './paths.ts'
 
 const PROVIDER_NAME = 'dsh-genui'
-const SKILL_BODY_URL = new URL('../assets/genui-skill.md', import.meta.url)
-
-/** Absolute path of the skill body, for agents that cannot load skills. */
-export const SKILL_BODY_PATH = fileURLToPath(SKILL_BODY_URL)
-
-/** Absolute directory the skill body's relative references resolve against. */
-export const SKILL_RESOURCE_DIR = fileURLToPath(new URL('../assets/', import.meta.url))
 
 const RESOURCE_BASE = {
 	kind: 'directory',
