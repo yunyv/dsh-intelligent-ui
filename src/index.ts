@@ -22,8 +22,9 @@ import {
 	OUTPUT_SCHEMA,
 	PARAMETERS,
 	isConcurrencySafe,
+	presentArtifactMeta,
+	renderArtifact,
 	runArtifact,
-	type Json,
 	type ToolConfig
 } from './tool.ts'
 
@@ -56,12 +57,6 @@ export interface PluginConfig extends ToolConfig {
 	storeRoot: string
 }
 
-/** The revision payload a tool result carries, as the presentation hooks see it. */
-interface Presented {
-	note: string
-	meta: Json | null
-}
-
 /** Build the tool bound to one store and configuration. */
 export function artifactTool(store: ArtifactStore, config: PluginConfig) {
 	return defineTool({
@@ -72,8 +67,8 @@ export function artifactTool(store: ArtifactStore, config: PluginConfig) {
 			schema: OUTPUT_SCHEMA,
 			// The note is the model-facing line; the payload rides the revision
 			// metadata, which is what the client reads and what replay restores from.
-			render: (_args, value) => [{ type: 'text', text: (value as unknown as Presented).note }],
-			presentationMeta: (_args, value) => (value as unknown as Presented).meta
+			render: renderArtifact,
+			presentationMeta: presentArtifactMeta
 		},
 		isConcurrencySafe: (args) => isConcurrencySafe(args),
 		execute: (args, exec) => runArtifact(store, config, args as Record<string, unknown>, exec.agent?.session.header.id),

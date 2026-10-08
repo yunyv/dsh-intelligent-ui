@@ -241,6 +241,33 @@ export function isConcurrencySafe(args: { action?: string }): boolean {
 }
 
 /**
+ * The model-facing text of one call.
+ *
+ * Everything a result says goes through here, including the markdown projection
+ * of a compiled artifact. That projection is the only thing a surface without
+ * the browser half can show — a terminal transcript, a headless client, a
+ * copy-paste — so this is the function that decides whether such a session sees
+ * the artifact's content or a bare confirmation line.
+ *
+ * @param _args - the call arguments, unused.
+ * @param value - the tool result.
+ * @returns one text block.
+ */
+export function renderArtifact(_args: unknown, value: unknown): { type: 'text', text: string }[] {
+	return [{ type: 'text', text: (value as ToolValue).note }]
+}
+
+/**
+ * The revision payload the client reads, and what replay restores from.
+ * @param _args - the call arguments, unused.
+ * @param value - the tool result.
+ * @returns the payload, or `null` for the actions that carry none.
+ */
+export function presentArtifactMeta(_args: unknown, value: unknown): Json | null {
+	return (value as ToolValue).meta
+}
+
+/**
  * Run one `artifact` call.
  *
  * `sessionId` is passed rather than read from a context object so this stays

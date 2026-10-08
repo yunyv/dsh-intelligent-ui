@@ -15,7 +15,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ArtifactStore } from '../src/store/index.ts'
-import { runArtifact, type ToolConfig } from '../src/tool.ts'
+import { presentArtifactMeta, renderArtifact, runArtifact, type ToolConfig } from '../src/tool.ts'
 
 /** A DIL document shaped like one a model actually writes. */
 const DIL = `给团队订阅算一笔账。
@@ -290,5 +290,35 @@ describe('the ordered arguments on the raw path', () => {
 		const { run } = tool()
 		const created = await run({ action: 'create', engine: 'html', html: HTML })
 		expect(metaOf(created).html).toBe(HTML)
+	})
+})
+
+describe('what a surface without the browser half sees', () => {
+	it('renders the markdown projection, so a terminal shows content rather than a confirmation', () => {
+		const note = [
+			'Created "订阅成本" as art-aaaa1111 (v1, 400 bytes).',
+			'',
+			'A plain-text rendering of the interface, for terminals and clients without the browser half:',
+			'',
+			'## 团队订阅成本'
+		].join('\n')
+		const blocks = renderArtifact({}, { note, meta: null })
+		expect(blocks).toHaveLength(1)
+		expect(blocks[0]?.type).toBe('text')
+		expect(blocks[0]?.text).toContain('团队订阅成本')
+	})
+
+	it('carries the compiled payload where the client and replay read it', async () => {
+		const { run } = tool()
+		const result = await run({ action: 'create', source: DIL })
+		const meta = presentArtifactMeta({}, result)
+		expect(meta).not.toBeNull()
+		expect((meta as Record<string, unknown>).engine).toBe('dil')
+		expect(((meta as Record<string, unknown>).dil as { code?: string }).code).toContain('DIL.render(')
+	})
+
+	it('carries nothing for an action that produced no revision', async () => {
+		const { run } = tool()
+		expect(presentArtifactMeta({}, await run({ action: 'list' }))).toBeNull()
 	})
 })
