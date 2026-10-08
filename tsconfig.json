@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "es2024",
+    "lib": ["es2023"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["node"]
+  },
+  "include": [
+    "src/index.ts",
+    "src/meta.ts",
+    "src/normalize.ts",
+    "src/patch.ts",
+    "src/registry.ts",
+    "tests/unit.spec.ts",
+    "tests/host-tool.spec.ts"
+  ],
+  "exclude": []
+}

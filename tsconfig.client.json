@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "types": []
+  },
+  "include": [
+    "src/client",
+    "src/meta.ts"
+  ],
+  "exclude": []
+}
