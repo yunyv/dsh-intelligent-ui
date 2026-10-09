@@ -8,7 +8,7 @@
  *
  * Ported from `vendor/dil-replica/replica/server/compiler/components.js` (MIT,
  * Disdjj/intelligent-ui-demo @938ab09) — behaviour unchanged.
- * @module dsh-genui/dil/compiler/components
+ * @module dsh-intelligent-ui/dil/compiler/components
  */
 
 export const INTRINSIC = new Set([

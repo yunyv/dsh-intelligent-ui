@@ -17,7 +17,7 @@
  * Disdjj/intelligent-ui-demo @938ab09) — behaviour unchanged, except that the two
  * seed fallbacks that used to return a raw boolean now stringify it: they are
  * interpolated into generated source, where `true` and `'true'` are the same text.
- * @module dsh-genui/dil/compiler/repair
+ * @module dsh-intelligent-ui/dil/compiler/repair
  */
 
 import { isExpression } from './validate.ts'

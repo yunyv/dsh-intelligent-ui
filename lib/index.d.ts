@@ -139,7 +139,7 @@ interface RestoreInput {
 }
 /** Construction options. Every knob is injectable so tests stay hermetic. */
 interface StoreOptions {
-  /** Disk root; defaults to `~/.dsh/storages/dsh-genui/` (or `DSH_GENUI_STORE_DIR`). */
+  /** Disk root; defaults to `~/.dsh/storages/dsh-intelligent-ui/` (or `DSH_GENUI_STORE_DIR`). */
   root?: string;
   /** Artifacts allowed per session (unscoped artifacts share one bucket). Default 40. */
   maxArtifactsPerSession?: number;
@@ -320,7 +320,7 @@ interface ToolConfig {
 }
 //#endregion
 //#region src/index.d.ts
-declare const name = "dsh-genui";
+declare const name = "dsh-intelligent-ui";
 /** Services this half registers into: the tool registry and the skill registry. */
 declare const inject: string[];
 /** Deployment configuration validated by the Loader. */

@@ -8,7 +8,7 @@
  * version N and one would silently overwrite the other's content. Optimistic
  * `expectedLatestVersion` catches a *logical* race the caller knew about; this
  * lock catches the physical one it could not.
- * @module dsh-genui/store/lock
+ * @module dsh-intelligent-ui/store/lock
  */
 
 import { openSync, statSync, unlinkSync, writeSync } from 'node:fs'

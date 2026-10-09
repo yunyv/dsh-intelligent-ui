@@ -168,8 +168,8 @@ describe('program delivery', () => {
 	})
 
 	it('honours frameUrl instead of generating the document', () => {
-		const test = mountHarness({ frameUrl: '/plugins/dsh-genui/runner.html' })
-		expect(test.internals.sandbox.frame?.getAttribute('src')).toBe('/plugins/dsh-genui/runner.html')
+		const test = mountHarness({ frameUrl: '/plugins/dsh-intelligent-ui/runner.html' })
+		expect(test.internals.sandbox.frame?.getAttribute('src')).toBe('/plugins/dsh-intelligent-ui/runner.html')
 		test.internals.handle.destroy()
 	})
 })

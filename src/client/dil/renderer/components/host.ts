@@ -6,7 +6,7 @@
  * A host widget mounts only when that indirection says `resolved` *and* the name is
  * registered here — the model cannot name its way into an arbitrary component.
  * Anything else renders a quiet placeholder.
- * @module dsh-genui/client/dil/renderer/components/host
+ * @module dsh-intelligent-ui/client/dil/renderer/components/host
  */
 
 import type { DilContext, DilHandle, DilProps } from '../../types.ts'

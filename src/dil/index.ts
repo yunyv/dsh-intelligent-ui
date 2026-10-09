@@ -5,7 +5,7 @@
  *
  * The client half imports {@link compileDil}'s {@link DilCompiled} result shape from
  * `./types.ts`; nothing here touches the tool registry, the session, or the disk.
- * @module dsh-genui/dil
+ * @module dsh-intelligent-ui/dil
  */
 
 import { compile } from './compiler/index.ts'

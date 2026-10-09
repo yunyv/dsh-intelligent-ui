@@ -1,5 +1,5 @@
 /**
- * tsdown preset for dsh-genui: an ESM node half with declarations plus
+ * tsdown preset for dsh-intelligent-ui: an ESM node half with declarations plus
  * a browser half wrapped for the harness client-module loader.
  *
  * The browser half may only `require()` the loader's frozen platform seeds, so
@@ -8,8 +8,10 @@
  * loadable without any cross-plugin value import.
  */
 import type { UserConfig } from 'tsdown'
+import { readFileSync } from 'node:fs'
 
-const PLUGIN_ID = 'dsh-genui'
+/** The one place the id is written down: the client bundle id and the package name must agree. */
+const PLUGIN_ID = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).name
 
 /** Module specifiers the 0.2.0-rc.2 web shell shares into its frozen module table. */
 const PLATFORM_MODULES = [

@@ -9,7 +9,7 @@
  * is told to adopt. The publisher is skipped, and a payload identical to what is
  * already held is dropped, so a mount that echoes back the state it was just given
  * cannot start a loop.
- * @module dsh-genui/client/dil-state
+ * @module dsh-intelligent-ui/client/dil-state
  */
 
 /** A revision's interface state; the values its `DIL.useState` keys hold. */

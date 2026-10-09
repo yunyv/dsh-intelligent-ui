@@ -23,7 +23,7 @@
  * not recorded yet; {@link walkChain} and {@link ArtifactStore.recover} adopt it
  * instead of discarding it, so nothing the model authored is ever lost to a
  * half-finished write.
- * @module dsh-genui/store/disk
+ * @module dsh-intelligent-ui/store/disk
  */
 
 import { readdirSync, rmSync } from 'node:fs'
@@ -32,6 +32,12 @@ import type { ArtifactSummary, ArtifactVersionMeta } from './types.ts'
 import { ensureDir, fileExists, isMissing, readBytes, readJson, removeFile, writeBytesAtomic, writeJsonAtomic } from './io.ts'
 
 /** Bumped only when `index.json` stops being readable by this code. */
+/**
+ * On-disk format identifiers. They keep the old prefix on purpose: they name a
+ * *format*, not the package, and the format did not change when the package was
+ * renamed. Renaming them here would make every version sidecar already on disk
+ * fail the strict check in \`readVersionMeta\` - a data migration bought for nothing.
+ */
 export const INDEX_SCHEMA = 'dsh-genui.store-index/1'
 /** Bumped only when a `vNNNN.json` sidecar stops being readable by this code. */
 export const VERSION_SCHEMA = 'dsh-genui.store-version/1'

@@ -312,10 +312,10 @@ describe('the default root', () => {
 		const previous = process.env[ROOT_ENV]
 		try {
 			delete process.env[ROOT_ENV]
-			expect(defaultStoreRoot()).toBe(join(homedir(), '.dsh', 'storages', 'dsh-genui'))
-			expect(storePaths(defaultStoreRoot()).indexFile).toBe(join(homedir(), '.dsh', 'storages', 'dsh-genui', 'index.json'))
-			process.env[ROOT_ENV] = '/tmp/dsh-genui-test-root'
-			expect(defaultStoreRoot()).toBe('/tmp/dsh-genui-test-root')
+			expect(defaultStoreRoot()).toBe(join(homedir(), '.dsh', 'storages', 'dsh-intelligent-ui'))
+			expect(storePaths(defaultStoreRoot()).indexFile).toBe(join(homedir(), '.dsh', 'storages', 'dsh-intelligent-ui', 'index.json'))
+			process.env[ROOT_ENV] = '/tmp/dsh-intelligent-ui-test-root'
+			expect(defaultStoreRoot()).toBe('/tmp/dsh-intelligent-ui-test-root')
 		} finally {
 			if (previous === undefined) delete process.env[ROOT_ENV]
 			else process.env[ROOT_ENV] = previous

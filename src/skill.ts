@@ -7,14 +7,14 @@
  * skill registry instead, so the same text ships here and is loaded on demand —
  * which also keeps ~4 KB of dialect rules out of every unrelated turn.
  *
- * @module dsh-genui/skill
+ * @module dsh-intelligent-ui/skill
  */
 
 import { readFile } from 'node:fs/promises'
 import type { SkillCandidate, SkillDefinition, SkillProvider } from '@deepseek-ai/dsh-skill'
 import { SKILL_BODY_PATH, SKILL_BODY_URL, SKILL_RESOURCE_DIR } from './paths.ts'
 
-const PROVIDER_NAME = 'dsh-genui'
+const PROVIDER_NAME = 'dsh-intelligent-ui'
 
 /**
  * Rank this provider's candidates carry, mirroring the registry's own

@@ -13,7 +13,7 @@
  * a whole commit before any effect runs, and transcript order is render order):
  * {@link ArtifactStore.publishQuiet} records the revision silently, and
  * {@link ArtifactStore.notify} delivers it from an effect.
- * @module dsh-genui/client/store
+ * @module dsh-intelligent-ui/client/store
  */
 
 import type { InputActions } from '@deepseek-ai/dsh-client-ui-conversation/client'

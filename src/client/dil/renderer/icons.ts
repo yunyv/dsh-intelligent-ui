@@ -6,7 +6,7 @@
  *
  * Inlining is also what keeps the sandbox frame's `default-src 'none'` intact: no
  * icon font, no sprite sheet, no `img-src`.
- * @module dsh-genui/client/dil/renderer/icons
+ * @module dsh-intelligent-ui/client/dil/renderer/icons
  */
 
 const PATHS: Record<string, string> = {

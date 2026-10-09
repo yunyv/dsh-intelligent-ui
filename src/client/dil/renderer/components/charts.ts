@@ -12,7 +12,7 @@
  * `ResizeObserver` from another realm throws on a node it does not know), and it is
  * disconnected through the patcher's teardown list, because in a long conversation a
  * view is destroyed far more often than a page is closed.
- * @module dsh-genui/client/dil/renderer/components/charts
+ * @module dsh-intelligent-ui/client/dil/renderer/components/charts
  */
 
 import type { DilContext, DilHandle, DilProps } from '../../types.ts'

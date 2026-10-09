@@ -9,7 +9,7 @@
  * compiler's return value but types the parts this half never interprets as
  * `unknown`, so a stricter definition on either side stays assignable in both
  * directions.
- * @module dsh-genui/client/dil/types
+ * @module dsh-intelligent-ui/client/dil/types
  */
 
 /** A prop bag as the sandbox serialized it: JSON values plus `{__dilFn}` handler refs. */

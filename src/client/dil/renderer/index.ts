@@ -12,7 +12,7 @@
  * DOM, not React, on purpose: the tree comes from the sandbox as data, the update
  * granularity is a patch, and a React tree would re-own every node the patcher needs
  * to keep identity on. The React shell around this view is the host half's business.
- * @module dsh-genui/client/dil/renderer
+ * @module dsh-intelligent-ui/client/dil/renderer
  */
 
 import type { DilComponentResult, DilContext, DilHandle, DilNode, DilProps } from '../types.ts'

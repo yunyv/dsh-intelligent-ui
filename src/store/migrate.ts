@@ -8,7 +8,7 @@
  * id (or, failing that, the same title inside the same session) already exists,
  * this continues it instead of minting a look-alike the model can never patch
  * again.
- * @module dsh-genui/store/migrate
+ * @module dsh-intelligent-ui/store/migrate
  */
 
 import type { ArtifactMode } from '../meta.ts'

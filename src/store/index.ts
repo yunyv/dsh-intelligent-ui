@@ -5,7 +5,7 @@
  * card created before a restart un-patchable. One root holds one catalog:
  *
  * ```text
- * ~/.dsh/storages/dsh-genui/
+ * ~/.dsh/storages/dsh-intelligent-ui/
  * ├── index.json
  * ├── locks/store.lock
  * └── artifacts/art-abcd2345/versions/{v0001.html,v0001.json,v0002.html,v0002.json}
@@ -23,7 +23,7 @@
  * store.read(record.id, 1)         // ?v=1
  * store.restore(record.id, 1)      // appends version 3 carrying version 1's content
  * ```
- * @module dsh-genui/store
+ * @module dsh-intelligent-ui/store
  */
 
 export { ArtifactStore } from './store.ts'

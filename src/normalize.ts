@@ -4,7 +4,7 @@
  * document still lands correctly: the skeleton tags are unwrapped (order
  * preserved, nothing dropped) and any CSP the model tried to declare is removed
  * so it cannot weaken the frame's own policy.
- * @module dsh-genui/normalize
+ * @module dsh-intelligent-ui/normalize
  */
 
 /** Skeleton tags whose open/close forms are unwrapped, keeping their content. */

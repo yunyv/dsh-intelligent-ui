@@ -7,7 +7,7 @@
  * (`vendor/dil-replica/replica/server/compiler/index.js`): same field names, same
  * value shapes, same declaration order. The client half implements against this
  * type, so nothing here may be renamed, dropped or "tidied".
- * @module dsh-genui/dil/types
+ * @module dsh-intelligent-ui/dil/types
  */
 
 /**

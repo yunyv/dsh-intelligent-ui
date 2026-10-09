@@ -1,8 +1,8 @@
 /**
  * Shared scaffolding for the store suite: every test gets its own temp root, so
- * the suite never touches `~/.dsh/storages/dsh-genui` and never shares state with
+ * the suite never touches `~/.dsh/storages/dsh-intelligent-ui` and never shares state with
  * another test file.
- * @module dsh-genui/tests/store/helpers
+ * @module dsh-intelligent-ui/tests/store/helpers
  */
 
 import { mkdtempSync, rmSync } from 'node:fs'
@@ -11,7 +11,7 @@ import { join } from 'node:path'
 
 /** A fresh, empty store root under the OS temp directory. */
 export function newRoot(): string {
-	return mkdtempSync(join(tmpdir(), 'dsh-genui-store-'))
+	return mkdtempSync(join(tmpdir(), 'dsh-intelligent-ui-store-'))
 }
 
 /** Delete every root a test created. */

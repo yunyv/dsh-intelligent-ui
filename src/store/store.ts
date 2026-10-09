@@ -16,7 +16,7 @@
  * and the version files, which is why a brand-new instance over the same root
  * behaves exactly like the process that wrote the data. Disk layout and crash
  * recovery live in `./disk.ts`, the writer lock in `./lock.ts`.
- * @module dsh-genui/store/store
+ * @module dsh-intelligent-ui/store/store
  */
 
 import { randomBytes } from 'node:crypto'

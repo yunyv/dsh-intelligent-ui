@@ -4,7 +4,7 @@
  *
  * Zero host dependencies — only `node:fs`, `node:crypto`, `node:os` and
  * `node:path` — so the whole store is unit-testable against a temp directory.
- * @module dsh-genui/store/io
+ * @module dsh-intelligent-ui/store/io
  */
 
 import { createHash } from 'node:crypto'
@@ -15,11 +15,11 @@ import { dirname, join } from 'node:path'
 /** Env override for the default root; the constructor option wins over it. */
 export const ROOT_ENV = 'DSH_GENUI_STORE_DIR'
 
-/** `<home>/.dsh/storages/dsh-genui`, the DSH storage directory convention. */
+/** `<home>/.dsh/storages/dsh-intelligent-ui`, the DSH storage directory convention. */
 export function defaultStoreRoot(): string {
 	const fromEnv = process.env[ROOT_ENV]
 	if (fromEnv !== undefined && fromEnv.trim().length > 0) return fromEnv.trim()
-	return join(homedir(), '.dsh', 'storages', 'dsh-genui')
+	return join(homedir(), '.dsh', 'storages', 'dsh-intelligent-ui')
 }
 
 /** Whether one thrown value is a missing-path filesystem error. */

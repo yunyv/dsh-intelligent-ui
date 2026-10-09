@@ -5,7 +5,7 @@
  * latest full state. Upstream POSTs that body to `/dil/view_state`; here the sink is a
  * callback the host half owns, because in DSH the destination is a cordis service, not
  * a route this half can name. The coalescing, the id, and the scope are unchanged.
- * @module dsh-genui/client/dil/view-state
+ * @module dsh-intelligent-ui/client/dil/view-state
  */
 
 /** One update as the server receives it. */

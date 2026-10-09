@@ -2,7 +2,7 @@
  * Failure surface of the artifact store. Every rejection throws one of these
  * instead of returning `undefined`, so a model gets a located, actionable
  * diagnostic rather than a silent no-op.
- * @module dsh-genui/store/errors
+ * @module dsh-intelligent-ui/store/errors
  */
 
 export { PatchError } from '../patch.ts'

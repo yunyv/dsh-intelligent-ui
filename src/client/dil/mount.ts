@@ -15,7 +15,7 @@
  * emits data, the patcher keeps node identity across revisions (an `<input>` keeps
  * focus while the model streams its own next revision), and a React tree would re-own
  * the very nodes that identity depends on.
- * @module dsh-genui/client/dil/mount
+ * @module dsh-intelligent-ui/client/dil/mount
  */
 
 import { mount as mountRenderer, type DilRenderer } from './renderer/index.ts'

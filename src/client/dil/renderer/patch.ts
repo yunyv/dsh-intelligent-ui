@@ -13,7 +13,7 @@
  * Handlers never cross the boundary as functions: an `on*` prop is a
  * `{__dilFn:"fnN"}` reference, and firing it sends the id (plus the value read from
  * the DOM) back to the sandbox.
- * @module dsh-genui/client/dil/renderer/patch
+ * @module dsh-intelligent-ui/client/dil/renderer/patch
  */
 
 import type { DilContext, DilElementNode, DilHandle, DilNode, DilProps, DilTextNode } from '../types.ts'

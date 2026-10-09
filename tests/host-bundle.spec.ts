@@ -12,7 +12,7 @@
  * the runtime does not ship it (nor its own peers). Every `inject`, config and
  * skill assertion was correct while the plugin could not load at all.
  *
- * @module dsh-genui/tests/host-bundle
+ * @module dsh-intelligent-ui/tests/host-bundle
  */
 
 import { readFileSync } from 'node:fs'

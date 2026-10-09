@@ -15,7 +15,7 @@
  *
  * Ported from `vendor/dil-replica/replica/server/compiler/markdown.js` (MIT,
  * Disdjj/intelligent-ui-demo @938ab09) — behaviour unchanged.
- * @module dsh-genui/dil/compiler/markdown
+ * @module dsh-intelligent-ui/dil/compiler/markdown
  */
 
 import type { DilAttr, DilElementNode, DilNode, DilTextNode } from './parser.ts'

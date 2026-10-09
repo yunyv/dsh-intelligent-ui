@@ -2,7 +2,7 @@
  * Controls. All are *controlled*: the value shown is always the prop the sandbox
  * sent, and user input travels to the sandbox as a handler call. Nothing is kept
  * locally except what prevents the caret from jumping while the user types.
- * @module dsh-genui/client/dil/renderer/components/controls
+ * @module dsh-intelligent-ui/client/dil/renderer/components/controls
  */
 
 import type { DilElement, DilHandle, DilProps } from '../../types.ts'

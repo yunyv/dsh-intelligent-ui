@@ -7,7 +7,7 @@
  *
  * Ported from `vendor/dil-replica/replica/server/compiler/scanner.js` (MIT,
  * Disdjj/intelligent-ui-demo @938ab09) — behaviour unchanged.
- * @module dsh-genui/dil/compiler/scanner
+ * @module dsh-intelligent-ui/dil/compiler/scanner
  */
 
 /** 1-based line/column of a UTF-16 index — what diagnostics report. */

@@ -1,5 +1,5 @@
 /**
- * Host half of dsh-genui: the harness binding for one tool with two rendering
+ * Host half of dsh-intelligent-ui: the harness binding for one tool with two rendering
  * paths and one durable artifact layer.
  *
  * The behaviour lives in `src/tool.ts`, which imports nothing from
@@ -8,7 +8,7 @@
  * module owns only what needs the harness: configuration, the catalog's root,
  * registration, and the presentation hooks.
  *
- * @module dsh-genui
+ * @module dsh-intelligent-ui
  */
 
 import type { Context } from '@deepseek-ai/cordis'

@@ -20,7 +20,7 @@
  *    the shadow *host* when the focus is inside a shadow tree, so upstream's
  *    "do not fight the user while they type" check never matched and every
  *    re-render would rewrite the caret away in a controlled input.
- * @module dsh-genui/client/dil/renderer/dom
+ * @module dsh-intelligent-ui/client/dil/renderer/dom
  */
 
 import type { DilElement, DilProps } from '../types.ts'

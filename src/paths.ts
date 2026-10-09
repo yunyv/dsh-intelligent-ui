@@ -6,7 +6,7 @@
  * without importing the skill registry. `src/skill.ts` and `src/tool.ts` both
  * read them from here.
  *
- * @module dsh-genui/paths
+ * @module dsh-intelligent-ui/paths
  */
 
 import { fileURLToPath } from 'node:url'

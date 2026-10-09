@@ -15,7 +15,7 @@
  * Ported from `vendor/dil-replica/replica/server/compiler/parser.js` (MIT,
  * Disdjj/intelligent-ui-demo @938ab09). One upstream bug fixed — see
  * {@link readClosingTag}.
- * @module dsh-genui/dil/compiler/parser
+ * @module dsh-intelligent-ui/dil/compiler/parser
  */
 
 import { lineCol, readBalanced, splitEachClause } from './scanner.ts'

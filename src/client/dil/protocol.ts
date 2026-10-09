@@ -5,7 +5,7 @@
  * Both directions carry `__dilFrame` (host ⇄ frame) or `__dilWorker` (frame ⇄ worker)
  * plus a protocol version, so a stale frame — a cached `runner.html` from an older
  * bundle — is rejected instead of being fed messages it cannot parse.
- * @module dsh-genui/client/dil/protocol
+ * @module dsh-intelligent-ui/client/dil/protocol
  */
 
 /** Bumped whenever a message shape changes; both sides check it. */

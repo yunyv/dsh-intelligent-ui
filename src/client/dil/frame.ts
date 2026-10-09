@@ -19,7 +19,7 @@
  *     worker needs to evaluate the model's program. Isolation comes from having no IO.
  *   • `worker-src blob: data:` — `blob:` is the normal transport, `data:` the fallback
  *     for engines that refuse a blob worker from an opaque-origin document.
- * @module dsh-genui/client/dil/frame
+ * @module dsh-intelligent-ui/client/dil/frame
  */
 
 import { FRAME_SCRIPT, FRAME_SCRIPT_SHA256 } from './generated/frame-script.ts'

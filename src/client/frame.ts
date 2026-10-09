@@ -9,7 +9,7 @@
  * never has to ask the app for anything and cannot reach it: `sandbox` carries
  * no `allow-same-origin`, and the policy denies every origin outside the static
  * asset allowlist.
- * @module dsh-genui/client/frame
+ * @module dsh-intelligent-ui/client/frame
  */
 
 import { COLLECT_MESSAGE, DATA_MESSAGE, HEIGHT_MESSAGE, STORAGE_MESSAGE, SYNC_MESSAGE, THEME_MESSAGE } from '../meta.ts'

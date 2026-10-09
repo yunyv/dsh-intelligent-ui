@@ -10,7 +10,7 @@
  *
  * The frame is headless. It is never the display container: it measures nothing, paints
  * nothing, and its only output is the serialized tree the host renders into its own DOM.
- * @module dsh-genui/client/dil/sandbox
+ * @module dsh-intelligent-ui/client/dil/sandbox
  */
 
 import { buildRunnerHtml } from './frame.ts'

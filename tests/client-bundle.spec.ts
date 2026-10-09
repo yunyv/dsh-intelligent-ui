@@ -112,7 +112,7 @@ beforeAll(() => {
 	;(0, eval)(readFileSync(join(process.cwd(), 'lib', 'client.js'), 'utf8'))
 	expect(entries, 'the bundle must register exactly one loader entry').toHaveLength(1)
 	const entry = entries[0]!
-	expect(entry.id).toBe('dsh-genui')
+	expect(entry.id).toBe('dsh-intelligent-ui')
 	client = entry.factory((specifier: string) => {
 		if (specifier === 'react') return React
 		if (specifier === 'react/jsx-runtime') return jsxRuntime
@@ -155,7 +155,7 @@ function componentFor(name: string, key: string): (props: never) => React.ReactN
 
 describe('browser half', () => {
 	it('exports the cordis plugin face', () => {
-		expect(client.name).toBe('dsh-genui')
+		expect(client.name).toBe('dsh-intelligent-ui')
 		expect(client.inject).toContain('slots')
 	})
 
@@ -164,7 +164,7 @@ describe('browser half', () => {
 		expect(injected).toContain('tool.call.toolview')
 		expect(registrations.some(row => row.options.name === 'sidebar.right.pane.tab')).toBe(true)
 		expect(registrations.some(row => row.options.name === 'sidebar.right.pane.tab.title')).toBe(true)
-		expect(opened).toContain('type:dsh-genui')
+		expect(opened).toContain('type:dsh-intelligent-ui')
 	})
 
 	it('waits for the right column instead of giving up when it is not there yet', () => {

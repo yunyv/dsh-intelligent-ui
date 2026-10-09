@@ -9,7 +9,7 @@
  * separate means the real code path is reachable from a unit test, and
  * `src/index.ts` is left as the thin binding that hands it to `defineTool`.
  *
- * @module dsh-genui/tool
+ * @module dsh-intelligent-ui/tool
  */
 
 import { compileDil } from './dil/index.ts'
@@ -160,7 +160,7 @@ function metaOf(
 		...(record.sessionId === undefined ? {} : { session: record.sessionId })
 	}
 	if (engine === 'html') return { ...base, html: record.source, render: extra.render ?? 'reload' }
-	if (extra.dil === undefined) throw new Error('dsh-genui: a compiled revision needs its compiled payload')
+	if (extra.dil === undefined) throw new Error('dsh-intelligent-ui: a compiled revision needs its compiled payload')
 	return { ...base, dil: extra.dil }
 }
 

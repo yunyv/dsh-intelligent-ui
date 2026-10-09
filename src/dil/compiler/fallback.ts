@@ -10,7 +10,7 @@
  * and unreadable when they sit inside a sentence. Printing the source costs
  * nothing and names what belongs in the gap. Recorded in
  * `tests/dil/parity.spec.ts`.
- * @module dsh-genui/dil/compiler/fallback
+ * @module dsh-intelligent-ui/dil/compiler/fallback
  */
 
 import type { DilElementNode, DilNode } from './parser.ts'

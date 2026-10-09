@@ -13,7 +13,7 @@
  *
  * Ported from `vendor/dil-replica/replica/server/compiler/codegen.js` (MIT,
  * Disdjj/intelligent-ui-demo @938ab09) — behaviour unchanged.
- * @module dsh-genui/dil/compiler/codegen
+ * @module dsh-intelligent-ui/dil/compiler/codegen
  */
 
 import { SHIMS, kindOf, resolutionId, type ComponentKind } from './components.ts'

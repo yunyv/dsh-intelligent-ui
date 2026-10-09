@@ -1,4 +1,4 @@
-# dsh-genui
+# dsh-intelligent-ui
 
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![DSH](https://img.shields.io/badge/DeepSeek%20Harness-plugin-4d6bfe)](https://github.com/deepseek-ai/deepseek-harness)
@@ -36,7 +36,7 @@ The distinction that matters: **the sandbox is an execution container, not a dis
 ## Install
 
 ```sh
-dsh plugin --profile desktop add github:yunyv/dsh-genui
+dsh plugin --profile desktop add github:yunyv/dsh-intelligent-ui
 ```
 
 Then **restart the app**. The build output is committed, so a git install needs no build step and no build permission.
@@ -44,13 +44,13 @@ Then **restart the app**. The build output is committed, so a git install needs 
 From a tarball, if you prefer to pin an exact artifact:
 
 ```sh
-dsh plugin --profile desktop add ./dsh-genui-0.1.0.tgz
+dsh plugin --profile desktop add ./dsh-intelligent-ui-0.1.0.tgz
 ```
 
 From a checkout, for development:
 
 ```sh
-git clone https://github.com/yunyv/dsh-genui && cd dsh-genui
+git clone https://github.com/yunyv/dsh-intelligent-ui && cd dsh-intelligent-ui
 pnpm install && pnpm run check
 bash scripts/reinstall-desktop.sh
 ```
@@ -101,7 +101,7 @@ An artifact can be on screen twice — live in its card and again in the right c
 
 ## The artifact store
 
-Persisted under `~/.dsh/storages/dsh-genui/`, with the data model borrowed from [coda0HQ/open-artifacts](https://github.com/coda0HQ/open-artifacts) (MIT):
+Persisted under `~/.dsh/storages/dsh-intelligent-ui/`, with the data model borrowed from [coda0HQ/open-artifacts](https://github.com/coda0HQ/open-artifacts) (MIT):
 
 ```text
 index.json                               the catalogue; never holds content
@@ -118,7 +118,7 @@ The write order is content → sidecar → atomic index replace, and both the re
 
 | Key | Default | Meaning |
 |---|---|---|
-| `storeRoot` | `''` | artifact directory; empty means `~/.dsh/storages/dsh-genui` |
+| `storeRoot` | `''` | artifact directory; empty means `~/.dsh/storages/dsh-intelligent-ui` |
 | `maxSourceBytes` | `2000000` | refuse a document larger than this |
 | `maxArtifactsPerSession` | `40` | per-session artifact ceiling |
 | `includeDegradedText` | `true` | append the plain-text projection the model can read back |
@@ -134,7 +134,7 @@ pnpm run check     # typecheck (3 projects) && build && vitest && the vendored u
 To iterate on `src/client/**` without restarting the app, build and copy the bundle into the installed copy; the browser picks it up:
 
 ```sh
-pnpm run build && cp lib/client.js ~/.dsh/profiles/desktop/node_modules/dsh-genui/lib/client.js
+pnpm run build && cp lib/client.js ~/.dsh/profiles/desktop/node_modules/dsh-intelligent-ui/lib/client.js
 ```
 
 Anything on the host side needs a reinstall **and a restart**.

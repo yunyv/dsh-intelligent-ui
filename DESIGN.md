@@ -1,4 +1,4 @@
-# dsh-genui 设计
+# dsh-intelligent-ui 设计
 
 范围：DSH 桌面 0.2.0-rc.2，desktop profile。一个包、一个工具、两条渲染路径。
 本文件只写当下要落地的形状与接线点；机制出处在 `PROVENANCE.md`，
@@ -109,7 +109,7 @@ interface ArtifactMeta {
 - `pnpm run check` 全绿（typecheck + build + 自有 vitest + 上游 98 个）
 - 装进 desktop profile 后两半都激活：
   `client/Slots/listSubTree root=tool.call.toolview` 出现
-  `{registrant:"dsh-genui", key:"artifact", active:true}`；
+  `{registrant:"dsh-intelligent-ui", key:"artifact", active:true}`；
   `host/Tool/listTools` 出现 `artifact`
 - 真实会话：卡片跟随明暗主题；改一个滑块后下一轮模型知道改成多少；
   重启 App 后旧产物仍可 patch；TUI 下看到降级 Markdown 而不是一行占位

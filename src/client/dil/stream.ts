@@ -6,7 +6,7 @@
  * `openTurn()` wraps an SSE connection and turns events into callbacks; the DSH host
  * half may instead feed `applyPatch` from its own transport — both paths land in the
  * same message shape.
- * @module dsh-genui/client/dil/stream
+ * @module dsh-intelligent-ui/client/dil/stream
  */
 
 /** One `{p,o,v}` patch from the stream. */

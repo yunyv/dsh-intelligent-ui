@@ -21,7 +21,7 @@
  * Ported from `vendor/dil-replica/replica/server/compiler/index.js` (MIT,
  * Disdjj/intelligent-ui-demo @938ab09). The field names, order and value shapes of
  * the returned object are part of the host↔client contract — see `../types.ts`.
- * @module dsh-genui/dil/compiler
+ * @module dsh-intelligent-ui/dil/compiler
  */
 
 import { parse } from './parser.ts'

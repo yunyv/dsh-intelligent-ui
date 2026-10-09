@@ -1,4 +1,4 @@
-# dsh-genui
+# dsh-intelligent-ui
 
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![DSH](https://img.shields.io/badge/DeepSeek%20Harness-plugin-4d6bfe)](https://github.com/deepseek-ai/deepseek-harness)
@@ -36,7 +36,7 @@
 ## 安装
 
 ```sh
-dsh plugin --profile desktop add github:yunyv/dsh-genui
+dsh plugin --profile desktop add github:yunyv/dsh-intelligent-ui
 ```
 
 装完**必须重启 App**。构建产物已经提交进仓库，所以从 git 安装不需要任何构建步骤，也不需要授予构建权限。
@@ -44,13 +44,13 @@ dsh plugin --profile desktop add github:yunyv/dsh-genui
 想锁定一个确切的产物，可以走 tarball：
 
 ```sh
-dsh plugin --profile desktop add ./dsh-genui-0.1.0.tgz
+dsh plugin --profile desktop add ./dsh-intelligent-ui-0.1.0.tgz
 ```
 
 开发用 checkout：
 
 ```sh
-git clone https://github.com/yunyv/dsh-genui && cd dsh-genui
+git clone https://github.com/yunyv/dsh-intelligent-ui && cd dsh-intelligent-ui
 pnpm install && pnpm run check
 bash scripts/reinstall-desktop.sh
 ```
@@ -101,7 +101,7 @@ vendor/dil-replica/    上游原样副本（出处见 PROVENANCE.md）
 
 ## 产物层
 
-落盘在 `~/.dsh/storages/dsh-genui/`，数据模型抄 [coda0HQ/open-artifacts](https://github.com/coda0HQ/open-artifacts)（MIT）：
+落盘在 `~/.dsh/storages/dsh-intelligent-ui/`，数据模型抄 [coda0HQ/open-artifacts](https://github.com/coda0HQ/open-artifacts)（MIT）：
 
 ```text
 index.json                               目录，永不存内容
@@ -118,7 +118,7 @@ artifacts/art-xxxxxxxx/versions/
 
 | 键 | 默认 | 含义 |
 |---|---|---|
-| `storeRoot` | `''` | 产物目录；空表示 `~/.dsh/storages/dsh-genui` |
+| `storeRoot` | `''` | 产物目录；空表示 `~/.dsh/storages/dsh-intelligent-ui` |
 | `maxSourceBytes` | `2000000` | 超过这个体积的文档直接拒绝 |
 | `maxArtifactsPerSession` | `40` | 单会话产物上限 |
 | `includeDegradedText` | `true` | 附加纯文本投影，供模型回读 |
@@ -134,7 +134,7 @@ pnpm run check     # typecheck（三个工程）&& 构建 && vitest && 上游自
 只改 `src/client/**` 时可以不用重启 App，把构建产物覆盖进安装副本，浏览器会重新装载：
 
 ```sh
-pnpm run build && cp lib/client.js ~/.dsh/profiles/desktop/node_modules/dsh-genui/lib/client.js
+pnpm run build && cp lib/client.js ~/.dsh/profiles/desktop/node_modules/dsh-intelligent-ui/lib/client.js
 ```
 
 宿主侧（`src/*.ts`）的任何改动都需要重装**并且重启**。

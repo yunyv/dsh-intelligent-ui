@@ -3,7 +3,7 @@
  * with the selected one rendered live. It is the persistent home an artifact
  * keeps after its card has scrolled away, and it adopts later revisions through
  * the same shared store the cards use.
- * @module dsh-genui/client/Panel
+ * @module dsh-intelligent-ui/client/Panel
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'

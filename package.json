@@ -1,5 +1,5 @@
 {
-  "name": "dsh-genui",
+  "name": "dsh-intelligent-ui",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -66,13 +66,13 @@
   },
   "license": "MIT",
   "author": "yunyv",
-  "homepage": "https://github.com/yunyv/dsh-genui#readme",
+  "homepage": "https://github.com/yunyv/dsh-intelligent-ui#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yunyv/dsh-genui.git"
+    "url": "git+https://github.com/yunyv/dsh-intelligent-ui.git"
   },
   "bugs": {
-    "url": "https://github.com/yunyv/dsh-genui/issues"
+    "url": "https://github.com/yunyv/dsh-intelligent-ui/issues"
   },
   "keywords": [
     "dsh-plugin",

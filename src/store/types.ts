@@ -10,7 +10,7 @@
  *
  * Pure types: no node builtins, so this module is safe to import from either
  * half of the plugin.
- * @module dsh-genui/store/types
+ * @module dsh-intelligent-ui/store/types
  */
 
 import type { ArtifactEngine, ArtifactMode, ArtifactRender } from '../meta.ts'
@@ -148,7 +148,7 @@ export interface RestoreInput {
 
 /** Construction options. Every knob is injectable so tests stay hermetic. */
 export interface StoreOptions {
-	/** Disk root; defaults to `~/.dsh/storages/dsh-genui/` (or `DSH_GENUI_STORE_DIR`). */
+	/** Disk root; defaults to `~/.dsh/storages/dsh-intelligent-ui/` (or `DSH_GENUI_STORE_DIR`). */
 	root?: string
 	/** Artifacts allowed per session (unscoped artifacts share one bucket). Default 40. */
 	maxArtifactsPerSession?: number

@@ -7,7 +7,7 @@
  * object in, a revision out, and a session log that has to keep working after
  * the process that wrote it is gone.
  *
- * @module dsh-genui/tests/host-tool
+ * @module dsh-intelligent-ui/tests/host-tool
  */
 
 import { mkdtempSync, rmSync } from 'node:fs'
@@ -65,7 +65,7 @@ function metaOf(result: { meta: unknown }): Record<string, unknown> {
 }
 
 beforeEach(() => {
-	root = mkdtempSync(join(tmpdir(), 'dsh-genui-host-'))
+	root = mkdtempSync(join(tmpdir(), 'dsh-intelligent-ui-host-'))
 	config = {
 		maxSourceBytes: 2_000_000,
 		maxArtifactsPerSession: 40,

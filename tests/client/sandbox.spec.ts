@@ -110,8 +110,8 @@ describe('creating the frame', () => {
 	})
 
 	it('serves a given frameUrl instead, and generates nothing', () => {
-		const test = harness({ frameUrl: '/plugins/dsh-genui/runner.html' })
-		expect(test.frame.getAttribute('src')).toBe('/plugins/dsh-genui/runner.html')
+		const test = harness({ frameUrl: '/plugins/dsh-intelligent-ui/runner.html' })
+		expect(test.frame.getAttribute('src')).toBe('/plugins/dsh-intelligent-ui/runner.html')
 		expect(test.frame.getAttribute('srcdoc')).toBeNull()
 	})
 

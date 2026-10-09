@@ -1,5 +1,5 @@
 /**
- * Browser half of dsh-genui: claims the `artifact` tool row so the
+ * Browser half of dsh-intelligent-ui: claims the `artifact` tool row so the
  * preview renders in the conversation, and registers an Artifacts page type in
  * the right-hand sidebar so every artifact keeps a persistent home.
  *
@@ -15,7 +15,7 @@
  *    conversation card alive even when the optional column is not.
  * 3. The right column is optional and may not exist yet when this half runs. It is
  *    therefore neither a hard dependency nor a one-shot probe: it is waited for.
- * @module dsh-genui/client
+ * @module dsh-intelligent-ui/client
  */
 
 import type { Context } from '@deepseek-ai/cordis'
@@ -38,7 +38,7 @@ export const name = PLUGIN_ID
 export const inject = ['slots']
 
 /** Page-type discriminator for `ctx.sidebarRight.openTab`. */
-const PANEL_KIND = 'dsh-genui'
+const PANEL_KIND = 'dsh-intelligent-ui'
 
 /** Registration identity; also the key the body and chip register under. */
 const PANEL_DEFINITION = `${PLUGIN_ID}:panel`

@@ -9,13 +9,13 @@
  * The one import is type-only and points at the compiler's own type module,
  * which is itself pure — that keeps a single definition of the compiled
  * payload instead of two that drift.
- * @module dsh-genui/meta
+ * @module dsh-intelligent-ui/meta
  */
 
 import type { DilCompiled } from './dil/types.ts'
 
 /** Package identity: the harness client-module id and the ModuleLoader entry id. */
-export const PLUGIN_ID = 'dsh-genui'
+export const PLUGIN_ID = 'dsh-intelligent-ui'
 
 /** Wire tool name; also the key the client registers under `tool.call.toolview`. */
 export const ARTIFACT_TOOL_NAME = 'artifact'

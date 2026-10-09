@@ -15,7 +15,7 @@
  *     written inside a shadow root can see that attribute on an ancestor — so the
  *     scheme is resolved here and mirrored onto the view element, and it is kept in
  *     step with a MutationObserver plus the media query.
- * @module dsh-genui/client/dil/theme
+ * @module dsh-intelligent-ui/client/dil/theme
  */
 
 import { THEME_CSS } from './generated/theme-css.ts'
