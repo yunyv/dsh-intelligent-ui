@@ -1,8 +1,8 @@
 node_modules/
-lib/
-dist/
 *.tgz
 *.tsbuildinfo
 .DS_Store
 coverage/
 *.log
+
+# lib/ is committed on purpose: a git install then needs no build step and no build permission.

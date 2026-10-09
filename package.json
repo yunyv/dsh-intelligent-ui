@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "DSH generative-UI plugin: model-authored interfaces rendered natively in the conversation (DIL compiled-program path) or in a sandboxed frame (HTML escape hatch), patched in place, persisted with version history.",
+  "description": "DSH plugin for generative UI: the model writes an interface instead of describing one. Declarative DSL compiled and executed in a DOM-less Worker sandbox, then drawn by the host with native DOM; a sandboxed-frame escape hatch for anything the component inventory cannot express. Patched in place, persisted with version history.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "exports": {
@@ -26,7 +26,8 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.client.json && tsc -p tsconfig.client-test.json",
     "test": "vitest run",
     "test:vendor": "node --test vendor/dil-replica/replica/test/*.test.js",
-    "check": "pnpm run typecheck && pnpm run build && pnpm run test && pnpm run test:vendor"
+    "check": "pnpm run typecheck && pnpm run build && pnpm run test && pnpm run test:vendor",
+    "prepare": "tsdown"
   },
   "dsh": {
     "bundle": {
@@ -62,5 +63,29 @@
     "tsdown": "^0.22.0",
     "typescript": "^5.9.0",
     "vitest": "^4.0.0"
-  }
+  },
+  "license": "MIT",
+  "author": "yunyv",
+  "homepage": "https://github.com/yunyv/dsh-genui#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yunyv/dsh-genui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yunyv/dsh-genui/issues"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "generative-ui",
+    "genui",
+    "intelligent-ui",
+    "artifacts",
+    "dil",
+    "sandbox",
+    "worker",
+    "llm",
+    "agent",
+    "ui"
+  ]
 }

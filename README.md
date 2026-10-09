@@ -1,147 +1,158 @@
 # dsh-genui
 
-模型在对话里生成的是**可操作的界面**，不是描述界面的文字。一个工具（`artifact`）、两条渲染路径、一层落盘产物。
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![DSH](https://img.shields.io/badge/DeepSeek%20Harness-plugin-4d6bfe)](https://github.com/deepseek-ai/deepseek-harness)
+[![tests](https://img.shields.io/badge/tests-442%20passing-brightgreen)](#development)
 
-范围：DSH 桌面版 0.2.0-rc.2，desktop profile。
+**Generative UI for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): the model writes an interface instead of describing one.**
 
-## 两条路径
+An open-source take on what ChatGPT calls **Intelligent UI** (internal codename *DIL*) and Claude calls **Artifacts** — the model's answer stops being prose about a dashboard and becomes the dashboard. Sliders you can drag, toggles you can flip, numbers that recompute locally with no second model call, and a card the model can revise in place while keeping your place.
 
-| | 编译路径（`engine: "dil"`，默认） | 逃生舱（`engine: "html"`） |
+Everything is one tool (`artifact`), two rendering paths, and an on-disk artifact layer.
+
+> Keywords: DSH plugin · DeepSeek Harness plugin · generative UI · GenUI · ChatGPT Intelligent UI · Claude Artifacts · declarative DSL · worker sandbox · native DOM render tree · artifact version history
+
+## What it is
+
+Ask for something you would otherwise only read about — *"a plan calculator where I can change seats and billing period"* — and the reply **is** a working calculator. The model writes a small declarative document, DSH compiles and runs it in a sandbox, and the host draws the result with native DOM: real controls, the host's own type scale, the host's own colours, correct in both light and dark mode.
+
+Three things follow from that, and they are the whole point:
+
+- **You operate the answer.** A chart whose inputs you change, a checklist you tick, a config you tune — not a screenshot of one.
+- **It stays correct.** Ask for a change and the model patches the same artifact in place. Version history means the revision you were looking at is still on disk.
+- **It survives the session.** Artifacts are persisted, so a card from last week is still patched in place today, after an app restart.
+
+## The two paths
+
+| | Compiled path — `engine: "dil"` (default) | Escape hatch — `engine: "html"` |
 |---|---|---|
-| 模型写什么 | DIL 文档：正文 + `{@body …}` 声明 + 一个根 `<box>` | 自包含文档：`css` 再 `html` |
-| 谁执行 | iframe 内**无 DOM Worker** 跑编译产物 | iframe 直接跑文档 |
-| 谁渲染 | **宿主**接到渲染树，用原生 DOM 画成真界面 | iframe 自己画 |
-| 拿到什么 | 主题免费、token 省、控件天生联动、结构先出 | 表达力无上限（3D、D3、自定义仿真） |
+| The model writes | a DIL document: prose, `{@body …}` declarations, one root `<box>` | a self-contained document: `css`, then `html` |
+| Who executes it | a **DOM-less Worker** inside the frame runs the compiled program | the frame runs the document itself |
+| Who draws it | **the host**, from a render tree, using native DOM | the frame draws itself |
+| What you get | theme for free, few tokens on the wire, controls wired to each other, structure streams out first | no ceiling (canvas, WebGL, D3, your own simulation) |
 
-关键区分：**沙箱是执行容器，不是显示容器。** 编译产物在 Worker 里跑并且碰不到 DOM，吐出一棵渲染树交给宿主画。所以"卡片里的代码碰到宿主元素"在结构上不可能发生——不是被防住了，是没有路径。
+The distinction that matters: **the sandbox is an execution container, not a display container.** Compiled code runs in a Worker that has no DOM, and emits a render tree the host draws. "Code inside the card reaching the host's elements" is therefore not blocked — there is no path for it to happen.
 
-## 安装
+## Install
 
 ```sh
+dsh plugin --profile desktop add github:yunyv/dsh-genui
+```
+
+Then **restart the app**. The build output is committed, so a git install needs no build step and no build permission.
+
+From a tarball, if you prefer to pin an exact artifact:
+
+```sh
+dsh plugin --profile desktop add ./dsh-genui-0.1.0.tgz
+```
+
+From a checkout, for development:
+
+```sh
+git clone https://github.com/yunyv/dsh-genui && cd dsh-genui
+pnpm install && pnpm run check
 bash scripts/reinstall-desktop.sh
 ```
 
-脚本会 build、pack 成 tarball、装进 desktop profile。**不要用目录链接安装**：链接会把源码树里仅供类型检查的 `node_modules/@deepseek-ai/*` 暴露给 Loader，Node 会解析到那些副本，而它们自己的传递依赖没装，导入直接抛 `Cannot find package`，整条 bundle 激活失败。
+Do not install this by linking the source directory. A link exposes `node_modules/@deepseek-ai/*` — which exists only for type checking — to the Loader; Node resolves to those copies, their own transitive peers are not installed, and the import throws `Cannot find package`, which takes the whole plugin down.
 
-装完**必须重启 App**：Host 对 Loader specifier 的包元数据缓存在进程内，包括"这个包导不进来"这个否定结论。
+## Use
 
-## 状态
-
-两半都已在真实 App 里激活，模型侧调用与**跨重启改写**都已走通。没有验过的只剩需要人眼看的观感。
-
-已在真实 Host 上验过：
-
-- `plugin_manager list_plugins` → `include:dsh-genui` 的 `fiberPhase` 是 `active`
-- `host/Tool/listTools` → 有 `artifact`，描述是两条路径的新版
-- `client/Slots/listSubTree root=sidebar.right.pane.tab` → 占用者有 `{registrant:"dsh-genui", key:"dsh-genui:panel", active:true}`
-- `skill genui` → 走真实技能注册表加载出完整契约，base directory 指向已安装包内的 `assets/`
-- **真实 DIL 调用**：模型在会话里调 `artifact` 编译出一张卡（`art-br6t8hve`，1381 字节），落盘到 `~/.dsh/storages/dsh-genui/`，索引里 `engine: "dil"`、sha 与内容一致
-- **跨 App 重启改写**：产物在 20:30 创建，App 在 23:06 重启，23:07 对同一个 id 打补丁成功 → v2，再 → v3。版本链是 `v1 → v2 → v3`，每版带 `parentVersionId`，六份文件都在盘上。**这正是前身插件做不到的那件事**
-
-已验证的工程面：
-
-- `pnpm run check` 全绿：`typecheck` 三个工程 + `tsdown` 构建 + **337 个自有测试** + **98 个上游测试**
-- 编译链路端到端跑通（在测试里）：`compileDil` → Worker → 渲染树 → renderer → Shadow DOM → 点击 → trigger → 新树 + `stateChanged`
-- 客户端半以**构建产物** `lib/client.js` 走真实 `__ModuleLoader__.load` 契约加载，断言注册到 `tool.call.toolview` 的 `artifact` 键
-- 围栏按 `engine` 分派：编译产物挂进 Shadow DOM，原始文档走帧
-- 产物层用**两个真实 OS 进程**验证：A 进程写到 v3，B 进程读回同一 sha 并续写到 v4
-
-尚未验证：卡片在界面上的观感（是否跟随明暗主题）、交互状态回注下一轮、以及降级文本修复的上线效果（它需要再重启一次，见上节第二坑）。
-
-## 两个踩过的坑
-
-**一、宿主半的加载是静默失败的。** 一个解析不到的说明符不会在对话里留下任何痕迹——条目只是变成 `fiberPhase: failed`，工具凭空消失。这次就是这么栽的：`@deepseek-ai/dsh-skill` 为了拿类型被写进 `peerDependencies`，打包器因此把它外置，而运行时并不提供它（连它自己的 peer 也不提供）。`inject`、Config、技能全对，插件却一个字节都没跑起来。
-
-只用到一个值，而且是个常量（`BUNDLED_SKILL_RANK = 600`），其余全是类型——把常量写出来就彻底去掉了这个运行期依赖。`tests/host-bundle.spec.ts` 现在把"构建产物只能 import 运行时真有的东西"变成硬约束，因为这种故障没有别的办法在评审里看出来。
-
-**二、失败的否定结论会被缓存，但可以就地重置。** Host 缓存"这个包导不进来"直到进程结束。**只在那一次加载失败过**的情况下，不用重启就能救回来——把插件条目关掉再开：
+Nothing to configure. Ask for something interactive and the model reaches for the tool. A DIL document looks like this — prose, declared state, then one tree:
 
 ```
-plugin_manager set_plugin target=include:dsh-genui enabled=false
-plugin_manager set_plugin target=include:dsh-genui enabled=true
+{@body const [seats,setSeats] = DIL.useState(5)}
+{@body const [yearly,setYearly] = DIL.useState(false)}
+{@body const total = 200 * (yearly ? 10 : 12) * seats}
+<box gap={4}>
+  <title size="lg">Team subscription cost</title>
+  <slider label="Seats" value={seats} onChange={setSeats} min={1} max={50}/>
+  <checkbox checked={yearly} onChange={setYearly}>Billed yearly</checkbox>
+  <card>
+    <caption>Per year</caption>
+    <title size="xl" tabularNums>${total.toLocaleString()}</title>
+  </card>
+</box>
 ```
 
-条目会被重新导入，`fiberPhase` 从 `failed` 变 `active`。**注意 target 要用 `include:` 前缀的 entryId**，用包名会回 `unknown-plugin`。
+(The `$` is a literal currency sign and `{total.toLocaleString()}` is the interpolation — DIL is not JavaScript template syntax, it only borrows the braces.)
 
-**但这只在加载失败时有效。** 一旦某个版本成功加载过，模块就进了进程的 ESM 缓存，关掉再开只会重新 `apply` 那份**已经被缓存的旧代码**——包换了、`apply` 跑了、行为却还是旧的。实测过一次：重装后 profile 里的 `lib/index.js` 与本地产物字节一致、确实含新代码，但补丁返回的降级文本仍是旧的。**换了代码必须重启，没有例外。**
+The authoring contract — the full component inventory, the rules that make a document run — ships as a bundled **skill**, so it loads only when a turn is actually about to write one rather than sitting in every request. Say `skill genui` to read it.
 
-**三、重启 App 别用 `launchctl submit`。** 它建的作业在进程退出后会被 launchd 再拉起来，于是"退出 → 重开"变成无限循环，App 一直重启。踩过一次。
+Where the card appears is under the model's control too: it writes a fenced block whose language is `dsh-artifact` and whose only content is the artifact id, and the frame is mounted at that point in the answer.
 
-要一次性执行就写 LaunchAgent plist（`RunAtLoad` 且**不写** `KeepAlive`）再 `launchctl bootstrap`，或者在脚本末尾自己 `launchctl bootout` 掉。最省事的办法是让人来重启。
-
-顺带一句：**成功加载过的模块进 ESM 缓存，换代码必须重启**（见上节第二坑），所以"改了就要重启"这件事没有捷径。
-
-## 验收
+## How it works
 
 ```
-cordis_inspect_query client/Slots/listSubTree root=tool.call.toolview
-  → occupants 里要有 {registrant:"dsh-genui", key:"artifact", active:true}
-cordis_inspect_query client/Slots/listSubTree root=sidebar.right.pane.tab
-  → 要有 {registrant:"dsh-genui", key:"dsh-genui:panel", active:true}
-cordis_inspect_query host/Tool/listTools
-  → 要有 name:"artifact"，描述里提到 `source` 与 `engine`
-cordis_inspect_query host/Config listConfigs name=dsh-genui
-  → 应有四个配置项
+src/tool.ts            every decision the tool makes; imports no @deepseek-ai/*, so tests drive it directly
+src/index.ts           the harness binding: Config, store root, registration, presentation hooks
+src/dil/               the ported streaming DIL compiler (parser, codegen, streaming boundaries, fallback)
+src/store/             the on-disk artifact layer
+src/client/            the browser half: fence claiming, engine dispatch, sidebar panel
+src/client/dil/        sandbox, render-tree renderer, patch model, state loop
+assets/genui-skill.md  the DIL authoring contract, loaded as a bundled skill
+vendor/dil-replica/    the upstream replica, verbatim (see PROVENANCE.md)
 ```
 
-激活的四条已经在真实 Host 上全过，上面那组命令留作回归复查。剩下的是真实会话里的五步：
+The compiler is a streaming compiler. It is fed a growing prefix of the document and reports which components have closed and which are still open, so the card can appear while the model is still typing it. Recovery is not all-or-nothing: a half-written element is dropped and everything around it still renders.
 
-1. 让它做一个能调参的东西（例如「做个能改人数和付费周期的团队订阅成本计算器」）。卡片应当出现在它写标记的那一行，跟随明暗主题。
-2. 改一个滑块，点「把当前设置交回对话」。下一轮它应当知道你改成了多少。
-3. 再让它改一处（例如换个费率）。应当是**原地重编**，你拖过的滑块位置不丢。
-4. **再重启一次 App**，回到这个会话，让它再改同一个产物。这条验证的是落盘产物层——前身插件在这里是坏的。
-5. TUI / headless 下同一个工具调用应当显示降级 Markdown，而不是一行占位。
+An artifact can be on screen twice — live in its card and again in the right column — and the two share one state, so a control moved in either one moves both.
 
-## 开发循环
+## The artifact store
 
-只改 `src/client/**` 时不用重启 App，把构建产物覆盖进 profile 的安装副本即可，浏览器会重新装载：
-
-```sh
-pnpm run build
-cp lib/client.js ~/.dsh/profiles/desktop/node_modules/dsh-genui/lib/client.js
-```
-
-宿主侧（`src/*.ts`）改动需要重装 + 重启。
-
-拿不到浏览器控制台时，用 `cordis_inspect_query client/Slots/listSubTree root=tool.call.toolview` 看座位有没有被占用。
-
-## 配置
-
-`storeRoot`、`maxSourceBytes`（默认 2 MB）、`maxArtifactsPerSession`（默认 40）、`includeDegradedText`（默认开）。
-
-## 产物层
-
-落盘在 `~/.dsh/storages/dsh-genui/`，数据模型抄 [coda0HQ/open-artifacts](https://github.com/coda0HQ/open-artifacts)（MIT）：
+Persisted under `~/.dsh/storages/dsh-genui/`, with the data model borrowed from [coda0HQ/open-artifacts](https://github.com/coda0HQ/open-artifacts) (MIT):
 
 ```text
-index.json                              目录，永不存内容
+index.json                               the catalogue; never holds content
 artifacts/art-xxxxxxxx/versions/
-  v0001.html  v0001.json                内容与元数据分家
+  v0001.html  v0001.json                 content and metadata kept apart
   v0002.html  v0002.json
 ```
 
-**不可变追加版本**，每条带 `versionNumber` / `parentVersionId` / `contentSha256` / `contentBytes` / `changelog`；`restore` 生成新 head 而不改历史；`expectedLatestVersion` 做乐观并发；`read(id, N)` 取任意历史版本。
+Versions are **appended, never rewritten**. Each carries `versionNumber`, `parentVersionId`, `contentSha256`, `contentBytes` and a `changelog`; `restore` appends a new head rather than editing history; `expectedLatestVersion` gives optimistic concurrency; `read(id, N)` fetches any historical revision.
 
-写序是「内容 → sidecar → 原子替换索引」，读路径与写路径都**以磁盘为准**，所以崩在中间不会让 head 指偏。
+The write order is content → sidecar → atomic index replace, and both the read and the write path treat the disk as the source of truth, so a crash in the middle cannot leave the head pointing at bytes that are not there.
 
-## 工程
+## Configuration
 
+| Key | Default | Meaning |
+|---|---|---|
+| `storeRoot` | `''` | artifact directory; empty means `~/.dsh/storages/dsh-genui` |
+| `maxSourceBytes` | `2000000` | refuse a document larger than this |
+| `maxArtifactsPerSession` | `40` | per-session artifact ceiling |
+| `includeDegradedText` | `true` | append the plain-text projection the model can read back |
+
+## Development
+
+```sh
+pnpm run check     # typecheck (3 projects) && build && vitest && the vendored upstream suite
 ```
-src/tool.ts              工具的全部判断，不 import 任何 @deepseek-ai/*，所以能被单测直接驱动
-src/index.ts             harness 绑定：Config、产物根目录、注册、呈现钩子
-src/dil/                 移植来的 DIL 流式编译器
-src/store/               落盘产物层
-src/client/dil/          沙箱、渲染树渲染器、补丁模型、状态回环
-src/client/fence.tsx     围栏认领 + 按 engine 分派
-assets/genui-skill.md    DIL 作者契约，作为 bundled skill 按需加载
-vendor/dil-replica/      上游原样副本（出处与 commit 见 PROVENANCE.md）
+
+442 tests pass: 344 ours, 98 vendored from upstream. The browser half is tested against the **built** `lib/client.js` through the real `__ModuleLoader__.load({ id, factory })` contract, so a registration or render failure there is a real defect rather than a test-harness artefact.
+
+To iterate on `src/client/**` without restarting the app, build and copy the bundle into the installed copy; the browser picks it up:
+
+```sh
+pnpm run build && cp lib/client.js ~/.dsh/profiles/desktop/node_modules/dsh-genui/lib/client.js
 ```
 
-第三方代码只放在 `vendor/`，从不编辑；改动一律发生在 `src/`。
+Anything on the host side needs a reinstall **and a restart**.
 
-## 已知限制
+## Notes for plugin authors
 
-- 编译链路**不在浏览器里编译**：编译器用 `node:vm` 做语法校验，进了浏览器包会在运行时炸。所以文档写出过程中只显示一行「正在生成界面」，落定后界面一次出现。这是取舍，不是遗漏。
-- 协议是 ChatGPT DIL `protocolVersion 14` 的一个快照，上游随时会改。协议细节封在 `src/dil/` 与 `src/client/dil/` 里。
-- 上游 `vendor/dil-replica` 是 0★、1 天龄的研究性仓库，我们接盘它的 bug；依据是它自带 98 个测试，其中含对真实抓包的逐字保真断言。
-- 逃生舱的 `jsFunctions` / `jsExpressions` 分步执行未采纳：一个脚本加上现有的「脚本变了就重载」规则够用。
+Three failures worth knowing about, all of which are invisible in review and were found the hard way.
+
+**A host half fails silently.** An unresolvable module specifier leaves no trace in the transcript: the plugin entry simply reports `fiberPhase: failed` and its tool is absent. Declaring a package in `peerDependencies` to get its types makes the bundler externalise it — so if the runtime does not actually ship that package, the plugin never runs while every `inject`, Config and skill assertion still passes. `tests/host-bundle.spec.ts` asserts that the built entry imports nothing outside the runtime-provided set.
+
+**A successfully-loaded module is cached for the life of the process.** Toggling a plugin entry off and on re-imports it, which rescues a load that *failed*. It does not re-read a file whose module already loaded: the ESM cache answers, `apply` runs against the old code, and the package on disk is irrelevant. Changed code needs a restart.
+
+**`ctx.inject(deps, cb)` is how you wait for an optional service.** Probing with `ctx.get(name)` and returning when it is absent works right up until a cold start runs your plugin before the provider is up, and then it fails intermittently forever. An optional dependency is not a hard `inject` entry, and it is not a one-shot probe — it is something to wait for.
+
+## Provenance and license
+
+MIT. The DIL path vendors [Disdjj/intelligent-ui-demo](https://github.com/Disdjj/intelligent-ui-demo) (MIT) verbatim under `vendor/`; the compiler and sandbox under `src/dil/` and `src/client/dil/` are ports of it. Exact commits, what was changed and why are in [PROVENANCE.md](PROVENANCE.md). Third-party code is never edited in place — changes happen in `src/`.
+
+The protocol is a snapshot of ChatGPT's DIL `protocolVersion 14` and upstream may change it at any time; the details are sealed inside `src/dil/` and `src/client/dil/`.
+
+Two deliberate divergences from upstream, both recorded as tests rather than as drift: a closing tag inside a block no longer swallows the rest of the document, and the plain-text projection keeps an interpolation's place (`n = {n}` rather than `n = `) so a terminal reader does not get a sentence with a hole in it.
