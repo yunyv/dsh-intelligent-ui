@@ -34,6 +34,8 @@ interface Registration {
 let client: LoaderEntry['factory'] extends (r: never) => infer M ? M : never
 const registrations: Registration[] = []
 const injected: string[] = []
+/** The dependency lists `ctx.inject` was asked to wait on. */
+const injectedDeps: string[][] = []
 const opened: string[] = []
 const definitions: { kind?: string }[] = []
 
@@ -63,6 +65,13 @@ const ctx = {
 		}
 		// Neither settings face is present, so the folding observable reports false.
 		return undefined
+	},
+	// Mirrors the shipped `ctx.inject`: the framework mounts the callback once the
+	// named services exist. Here they already do, so it runs at once. The test below
+	// drives the other case — services that arrive only after apply.
+	inject(deps: string[], callback: (scope: unknown) => void): void {
+		injectedDeps.push(deps)
+		callback(ctx)
 	},
 	// Mirrors the shipped SlotRegistry: both methods read `this.ctx.effect`, so a
 	// caller that detaches a method loses the receiver here exactly as it would in
@@ -156,6 +165,43 @@ describe('browser half', () => {
 		expect(registrations.some(row => row.options.name === 'sidebar.right.pane.tab')).toBe(true)
 		expect(registrations.some(row => row.options.name === 'sidebar.right.pane.tab.title')).toBe(true)
 		expect(opened).toContain('type:dsh-genui')
+	})
+
+	it('waits for the right column instead of giving up when it is not there yet', () => {
+		// A cold start can run this half before the column's services exist. The first
+		// version probed once and returned, so the panel appeared or not depending on
+		// startup order. The registration is now handed to `ctx.inject`, which mounts a
+		// child plugin that stays pending until both services are present.
+		const callbacks: ((scope: unknown) => void)[] = []
+		const depsSeen: string[][] = []
+		const lateCtx = {
+			inject(deps: string[], callback: (scope: unknown) => void): void {
+				depsSeen.push(deps)
+				callbacks.push(callback)
+			},
+			slots: ctx.slots
+		}
+
+		const before = registrations.length
+		client.apply(lateCtx as never)
+		const added = (): Registration[] => registrations.slice(before)
+
+		// The card is wired at once. It must never wait on an optional column.
+		expect(added().some(row => row.options.key === 'artifact'), 'the card must not wait for the column').toBe(true)
+		// The column is not registered, but the request for it is outstanding.
+		expect(depsSeen).toEqual([['sidebarRightTabs', 'sidebarRight']])
+		expect(callbacks).toHaveLength(1)
+		expect(added().some(row => row.options.name === 'sidebar.right.pane.tab')).toBe(false)
+
+		// The framework mounts the child once both services arrive.
+		const lateServices = {
+			sidebarRightTabs: { register: () => () => undefined },
+			sidebarRight: { openTab: () => undefined }
+		}
+		callbacks[0]!({ get: (name: string) => lateServices[name as keyof typeof lateServices], slots: ctx.slots })
+
+		expect(added().some(row => row.options.name === 'sidebar.right.pane.tab')).toBe(true)
+		expect(added().some(row => row.options.name === 'sidebar.right.pane.tab.title')).toBe(true)
 	})
 
 	it('renders a settled revision as a compact row, never a second frame', () => {

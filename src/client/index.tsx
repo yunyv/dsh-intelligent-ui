@@ -3,7 +3,7 @@
  * preview renders in the conversation, and registers an Artifacts page type in
  * the right-hand sidebar so every artifact keeps a persistent home.
  *
- * Two shapes matter here and are easy to get wrong:
+ * Three shapes matter here and are easy to get wrong:
  *
  * 1. `SlotRegistry.prototype.register` reads `this.ctx` to own its effect, so it
  *    must be called ON the registry. Detaching it into a variable drops the
@@ -13,6 +13,8 @@
  *    every registration already made — the whole browser half disappears. Each
  *    deferred registration therefore catches its own failure, which keeps the
  *    conversation card alive even when the optional column is not.
+ * 3. The right column is optional and may not exist yet when this half runs. It is
+ *    therefore neither a hard dependency nor a one-shot probe: it is waited for.
  * @module dsh-genui/client
  */
 
@@ -68,44 +70,63 @@ function describeFailure(error: unknown): string {
 }
 
 /**
+ * Wire one seat on a context.
+ *
+ * A method call, deliberately: see the module note above.
+ * @param target - the context that owns the registration.
+ * @param label - name used in the diagnostic.
+ * @param seat - slot key.
+ * @param options - registration options for that seat.
+ * @param component - the component to register.
+ */
+function wireOn(
+	target: Context,
+	label: string,
+	seat: string,
+	options: { name: string; key?: string; id?: string; order?: number },
+	component: (props: never) => React.ReactNode
+): void {
+	const register: SeatRegister = (o, c) => (target.slots.register as unknown as SeatRegister)(o, c)
+	try {
+		target.slots.inject(seat as never, () => {
+			try {
+				return register(options, component)
+			} catch (error) {
+				console.warn(`[${PLUGIN_ID}] seat "${label}" was refused`, describeFailure(error))
+				return () => undefined
+			}
+		})
+	} catch (error) {
+		console.warn(`[${PLUGIN_ID}] seat "${label}" could not be armed`, describeFailure(error))
+	}
+}
+
+/**
+ * Read a service off a context, whichever way this runtime exposes it.
+ *
+ * The framework resolves an injected dependency through the context proxy, so
+ * \`scope.sidebarRight\` is the idiom. The store read (\`ctx.get\`) is what this half
+ * used before and is proven to work against the real client runtime. Reading both
+ * costs nothing and survives either mechanism.
+ * @param scope - the context to read from.
+ * @param name - the service name.
+ * @returns the service value, or undefined when it is not provided.
+ */
+function readService(scope: Context, name: string): unknown {
+	const lookup = (scope as unknown as { get?: (service: string) => unknown }).get
+	if (typeof lookup === 'function') {
+		const value = lookup.call(scope, name)
+		if (value !== undefined) return value
+	}
+	return (scope as unknown as Record<string, unknown>)[name]
+}
+
+/**
  * Register the browser half.
  * @param ctx - registrant context.
  */
 export function apply(ctx: Context): void {
-	// A method call, deliberately: see the module note above.
-	const register: SeatRegister = (options, component) =>
-		(ctx.slots.register as unknown as SeatRegister)(options, component)
-
-	/**
-	 * Wire one seat, catching a failure that would otherwise surface inside this
-	 * plugin's own effect and roll the whole half back.
-	 * @param label - name used in the diagnostic.
-	 * @param seat - slot key.
-	 * @param options - registration options for that seat.
-	 * @param component - the component to register.
-	 */
-	const wire = (
-		label: string,
-		seat: string,
-		options: { name: string; key?: string; id?: string; order?: number },
-		component: (props: never) => React.ReactNode
-	): void => {
-		try {
-			ctx.slots.inject(seat as never, () => {
-				try {
-					return register(options, component)
-				} catch (error) {
-					console.warn(`[${PLUGIN_ID}] seat "${label}" was refused`, describeFailure(error))
-					return () => undefined
-				}
-			})
-		} catch (error) {
-			console.warn(`[${PLUGIN_ID}] seat "${label}" could not be armed`, describeFailure(error))
-		}
-	}
-
-
-	wire('tool view', 'tool.call.toolview', { name: 'tool.call.toolview', key: ARTIFACT_TOOL_NAME },
+	wireOn(ctx, 'tool view', 'tool.call.toolview', { name: 'tool.call.toolview', key: ARTIFACT_TOOL_NAME },
 		ArtifactView as unknown as (props: never) => React.ReactNode)
 
 	// The artifact's position inside the answer: the model writes a marker fence in
@@ -127,58 +148,71 @@ export function apply(ctx: Context): void {
 	} catch (error) {
 	}
 
-	// The right column is optional: its absence must not cost anything above.
-	const lookup = (ctx as unknown as { get?: (name: string) => unknown }).get
-	if (typeof lookup !== 'function') return
-	const tabs = lookup.call(ctx, 'sidebarRightTabs') as TabRegistry | undefined
-	const sidebar = lookup.call(ctx, 'sidebarRight') as SidebarFace | undefined
-	if (tabs === undefined || sidebar === undefined) return
-
-	try {
-		tabs.register({
-			id: PANEL_DEFINITION,
-			kind: PANEL_KIND,
-			title: () => '产物',
-			guide: [{
-				id: `${PANEL_DEFINITION}:entry`,
-				order: 42,
-				title: () => '产物',
-				description: () => '本会话里的 artifact 与实时预览'
-			}]
-		})
-	} catch (error) {
-		// A hot reload or a cold start can re-apply this half while the previous
-		// page-type registration is still live; the column keeps working either way.
-		console.warn(`[${PLUGIN_ID}] artifacts page type not registered`, describeFailure(error))
-	}
-
-	wire('panel body', 'sidebar.right.pane.tab', { name: 'sidebar.right.pane.tab', key: PANEL_DEFINITION },
-		ArtifactPanel as unknown as (props: never) => React.ReactNode)
-	wire('panel title', 'sidebar.right.pane.tab.title', { name: 'sidebar.right.pane.tab.title', key: PANEL_DEFINITION },
-		(() => '产物') as unknown as (props: never) => React.ReactNode)
-
-	// A frame inside the conversation expands into the column: one artifact, two
-	// views of it.
-	panelOpener.current = (id: string) => {
-		artifactStore.focus(id)
-		try {
-			sidebar.openTab(PANEL_KIND)
-		} catch (error) {
-			console.warn(`[${PLUGIN_ID}] could not open the artifacts column`, describeFailure(error))
-		}
-	}
-
-	// The first artifact of the page reveals the column, the way a chat product
-	// surfaces the artifact it just produced. Replay re-reveals it too.
+	// The column opens through whichever context ends up providing it. Subscribed
+	// once, here, so a re-injection cannot stack a second subscription, and so the
+	// reveal still fires for an artifact created before the column arrived.
+	let openColumn: ((id?: string) => void) | undefined
 	let revealed = false
 	artifactStore.subscribeAll(() => {
-		if (revealed || artifactStore.list().length === 0) return
+		if (revealed || openColumn === undefined || artifactStore.list().length === 0) return
 		revealed = true
+		openColumn()
+	})
+
+	// The right column is optional, and on a cold start this half can run before the
+	// column's services exist. Probing once and returning made the panel appear or
+	// not depending on startup order, so the registration waits instead: `ctx.inject`
+	// mounts a child plugin that stays pending until both services are present, and
+	// re-runs if a provider is replaced. Everything above is wired first, so a column
+	// that never arrives costs the card nothing.
+	const injectable = (ctx as unknown as {
+		inject?: (deps: string[], callback: (scope: Context) => void) => unknown
+	}).inject
+	if (typeof injectable !== 'function') return
+
+	injectable.call(ctx, ['sidebarRightTabs', 'sidebarRight'], (scope) => {
+		const tabs = readService(scope, 'sidebarRightTabs') as TabRegistry | undefined
+		const sidebar = readService(scope, 'sidebarRight') as SidebarFace | undefined
+		if (tabs === undefined || sidebar === undefined) return
+
 		try {
-			sidebar.openTab(PANEL_KIND)
+			tabs.register({
+				id: PANEL_DEFINITION,
+				kind: PANEL_KIND,
+				title: () => '产物',
+				guide: [{
+					id: `${PANEL_DEFINITION}:entry`,
+					order: 42,
+					title: () => '产物',
+					description: () => '本会话里的 artifact 与实时预览'
+				}]
+			})
 		} catch (error) {
-			console.warn(`[${PLUGIN_ID}] could not reveal the artifacts column`, describeFailure(error))
+			// A hot reload or a cold start can re-apply this half while the previous
+			// page-type registration is still live; the column keeps working either way.
+			console.warn(`[${PLUGIN_ID}] artifacts page type not registered`, describeFailure(error))
 		}
+
+		wireOn(scope, 'panel body', 'sidebar.right.pane.tab', { name: 'sidebar.right.pane.tab', key: PANEL_DEFINITION },
+			ArtifactPanel as unknown as (props: never) => React.ReactNode)
+		wireOn(scope, 'panel title', 'sidebar.right.pane.tab.title', { name: 'sidebar.right.pane.tab.title', key: PANEL_DEFINITION },
+			(() => '产物') as unknown as (props: never) => React.ReactNode)
+
+		// A frame inside the conversation expands into the column: one artifact, two
+		// views of it.
+		openColumn = (id?: string) => {
+			if (id !== undefined) artifactStore.focus(id)
+			try {
+				sidebar.openTab(PANEL_KIND)
+			} catch (error) {
+				console.warn(`[${PLUGIN_ID}] could not open the artifacts column`, describeFailure(error))
+			}
+		}
+		panelOpener.current = (id: string) => openColumn?.(id)
+
+		// The first artifact of the page reveals the column, the way a chat product
+		// surfaces the artifact it just produced. Replay re-reveals it too.
+		if (!revealed && artifactStore.list().length > 0) openColumn()
 	})
 }
 
