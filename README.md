@@ -149,6 +149,8 @@ Three failures worth knowing about, all of which are invisible in review and wer
 
 **`ctx.inject(deps, cb)` is how you wait for an optional service.** Probing with `ctx.get(name)` and returning when it is absent works right up until a cold start runs your plugin before the provider is up, and then it fails intermittently forever. An optional dependency is not a hard `inject` entry, and it is not a one-shot probe — it is something to wait for.
 
+> **On the name.** This was called `dsh-genui` until it was clear that name was taken: [lhuans/dsh-genui](https://github.com/lhuans/dsh-genui) is an unrelated DSH generative-UI plugin that got there first, and a generic name said nothing about the approach here. The two differ where it counts — that one renders Vue components from a schema, this one compiles a declarative document and hands the host a render tree.
+
 ## Provenance and license
 
 MIT. The DIL path vendors [Disdjj/intelligent-ui-demo](https://github.com/Disdjj/intelligent-ui-demo) (MIT) verbatim under `vendor/`; the compiler and sandbox under `src/dil/` and `src/client/dil/` are ports of it. Exact commits, what was changed and why are in [PROVENANCE.md](PROVENANCE.md). Third-party code is never edited in place — changes happen in `src/`.

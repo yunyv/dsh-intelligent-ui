@@ -149,6 +149,8 @@ pnpm run build && cp lib/client.js ~/.dsh/profiles/desktop/node_modules/dsh-inte
 
 **三、`ctx.inject(deps, cb)` 才是等可选服务的正确姿势。** 用 `ctx.get(name)` 探一次、没有就退，这在服务齐备时看不出任何问题，只在冷启动跑到提供方前面时才静默失效——然后它会一直时好时坏。可选依赖既不是一条硬 `inject`，也不是一次探测，而是**需要等的东西**。
 
+> **关于改名。** 它原来叫 `dsh-genui`，后来发现这个名字被占了：[lhuans/dsh-genui](https://github.com/lhuans/dsh-genui) 是一个同样做 DSH 生成式界面的插件，比我们早一个月，而那个名字本身也没说出我们的做法。两者的分歧正在要点上——它从 schema 渲染 Vue 组件，我们把一份声明式文档编译出来、把渲染树交给宿主。
+
 ## 来源与许可
 
 MIT。DIL 路径在 `vendor/` 下原样收录了 [Disdjj/intelligent-ui-demo](https://github.com/Disdjj/intelligent-ui-demo)（MIT）；`src/dil/` 与 `src/client/dil/` 下的编译器与沙箱是它的移植。确切的 commit、改了什么、为什么，都在 [PROVENANCE.md](PROVENANCE.md)。第三方代码从不就地编辑——改动一律发生在 `src/`。
