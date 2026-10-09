@@ -1,5 +1,7 @@
 # dsh-intelligent-ui
 
+[![npm version](https://img.shields.io/npm/v/dsh-intelligent-ui)](https://www.npmjs.com/package/dsh-intelligent-ui)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-intelligent-ui)](https://www.npmjs.com/package/dsh-intelligent-ui)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![DSH](https://img.shields.io/badge/DeepSeek%20Harness-plugin-4d6bfe)](https://github.com/deepseek-ai/deepseek-harness)
 [![tests](https://img.shields.io/badge/tests-442%20passing-brightgreen)](#开发)
@@ -34,6 +36,14 @@
 关键区分：**沙箱是执行容器，不是显示容器。** 编译产物跑在一个碰不到 DOM 的 Worker 里，吐出一棵渲染树交给宿主画。所以"卡片里的代码够到宿主的元素"不是**被防住了**，而是**没有路径**。
 
 ## 安装
+
+从 npm：
+
+```sh
+dsh plugin --profile desktop add dsh-intelligent-ui
+```
+
+或者直接从仓库装：
 
 ```sh
 dsh plugin --profile desktop add github:yunyv/dsh-intelligent-ui

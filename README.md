@@ -1,5 +1,7 @@
 # dsh-intelligent-ui
 
+[![npm version](https://img.shields.io/npm/v/dsh-intelligent-ui)](https://www.npmjs.com/package/dsh-intelligent-ui)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-intelligent-ui)](https://www.npmjs.com/package/dsh-intelligent-ui)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![DSH](https://img.shields.io/badge/DeepSeek%20Harness-plugin-4d6bfe)](https://github.com/deepseek-ai/deepseek-harness)
 [![tests](https://img.shields.io/badge/tests-442%20passing-brightgreen)](#development)
@@ -34,6 +36,14 @@ Three things follow from that, and they are the whole point:
 The distinction that matters: **the sandbox is an execution container, not a display container.** Compiled code runs in a Worker that has no DOM, and emits a render tree the host draws. "Code inside the card reaching the host's elements" is therefore not blocked — there is no path for it to happen.
 
 ## Install
+
+From npm:
+
+```sh
+dsh plugin --profile desktop add dsh-intelligent-ui
+```
+
+Or straight from the repository:
 
 ```sh
 dsh plugin --profile desktop add github:yunyv/dsh-intelligent-ui
