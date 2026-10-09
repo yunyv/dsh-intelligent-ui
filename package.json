@@ -27,7 +27,7 @@
     "test": "vitest run",
     "test:vendor": "node --test vendor/dil-replica/replica/test/*.test.js",
     "check": "pnpm run typecheck && pnpm run build && pnpm run test && pnpm run test:vendor",
-    "prepare": "tsdown"
+    "prepublishOnly": "pnpm run check"
   },
   "dsh": {
     "bundle": {
