@@ -7,7 +7,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { HEIGHT_MESSAGE, STORAGE_MESSAGE, asHtmlMeta, type ArtifactMetaHtml, type FrameMessage } from '../meta.ts'
+import { HEIGHT_MESSAGE, STORAGE_MESSAGE, asDilMeta, asHtmlMeta, type ArtifactMetaHtml, type FrameMessage } from '../meta.ts'
+import { dilStateOf, publishDilState, subscribeDilState } from './dil-state.ts'
+import { mountDilView } from './dil/mount.ts'
+import type { DilCompiled, DilMountHandle } from './dil/types.ts'
 import { buildFrameDoc, resolveTheme } from './frame.ts'
 import { artifactStore, type ArtifactState } from './store.ts'
 
@@ -82,21 +85,59 @@ export function ArtifactPanel(props: ArtifactPanelProps): React.ReactNode {
 	)
 }
 
-/** The panel's preview area: a live frame, or a pointer for a DIL revision. */
+/** The panel's preview area: a live frame for an HTML revision, a live interface for a DIL one. */
 function PanelSlot({ state }: { state: ArtifactState }): React.ReactNode {
 	const html = asHtmlMeta(state.meta)
-	if (html === undefined) {
-		// A DIL revision's compiled program renders at the marker the model wrote in
-		// its answer. Mounting a second copy here would put two live instances of the
-		// same state on screen, so the panel points at that one instead.
-		return (
-			<div style={{ padding: 12, fontSize: 12, opacity: 0.75, lineHeight: 1.7 }}>
-				<div><span style={{ fontWeight: 500 }}>{state.meta.title}</span> · v{state.meta.version}</div>
-				<div>这个界面在对话中对应的标记处渲染，交互状态与那边共享。</div>
-			</div>
-		)
-	}
-	return <PanelFrame key={state.meta.id} state={{ ...state, meta: html }} />
+	if (html !== undefined) return <PanelFrame key={state.meta.id} state={{ ...state, meta: html }} />
+	const compiled = asDilMeta(state.meta)?.dil
+	if (compiled === undefined) return null
+	return <PanelDil key={state.meta.id} id={state.meta.id} compiled={compiled} />
+}
+
+/**
+ * One live DIL interface inside the panel.
+ *
+ * This is the column's copy of what the conversation card is showing, and it holds
+ * the same state: a control moved here moves there. The two are views of one
+ * interface rather than two interfaces, which is the whole claim of giving a
+ * generated surface a home in a column.
+ * @param props - the artifact to mount and its compiled program.
+ * @returns the host element the interface renders into.
+ */
+function PanelDil({ id, compiled }: { id: string, compiled: DilCompiled }): React.ReactNode {
+	const hostRef = useRef<HTMLDivElement | null>(null)
+	const handleRef = useRef<DilMountHandle | null>(null)
+	const ready = compiled.code.length > 0
+
+	useEffect(() => {
+		const host = hostRef.current
+		if (host === null || !ready) return
+		const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' })
+		const adopt = (next: Record<string, unknown>): void => { handleRef.current?.setState(next) }
+		const handle = mountDilView(shadow, {
+			onStateChange: (next) => { publishDilState(id, next, adopt) },
+			// The mount already forwards the event into its own sandbox, which is what
+			// makes this copy respond; nothing here needs to observe it.
+			onEvent: () => {},
+			appData: compiled.appData
+		})
+		handleRef.current = handle
+		const unsubscribe = subscribeDilState(id, adopt)
+		const opening = dilStateOf(id)
+		if (Object.keys(opening).length > 0) handle.setState(opening)
+		return () => {
+			unsubscribe()
+			handle.destroy()
+			handleRef.current = null
+		}
+		// A new revision of the same document is pushed through update, not a rebuild.
+	}, [id, ready])
+
+	useEffect(() => {
+		if (ready) handleRef.current?.update(compiled)
+	}, [compiled, ready])
+
+	return <div ref={hostRef} style={{ minHeight: 160 }} />
 }
 
 /** Artifact state whose payload is known to belong to the HTML path. */

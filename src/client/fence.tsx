@@ -32,6 +32,7 @@ import { createRoot } from 'react-dom/client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { asDilMeta, asHtmlMeta, type ArtifactMeta, type ArtifactMetaDil } from '../meta.ts'
 import { ArtifactFrame, interactionReport } from './ArtifactView.tsx'
+import { dilStateOf, publishDilState, subscribeDilState, type DilStateListener } from './dil-state.ts'
 import { mountDilView } from './dil/mount.ts'
 import type { DilMountHandle } from './dil/types.ts'
 import { artifactStore, panelOpener, sessionInput } from './store.ts'
@@ -125,9 +126,6 @@ function FenceCard({ id }: { id: string }): React.ReactNode {
 	)
 }
 
-/** Latest keyed state per artifact, so a remount restores where the user left off. */
-const dilState = new Map<string, Record<string, unknown>>()
-
 const DIL_HEADER: React.CSSProperties = {
 	display: 'flex',
 	alignItems: 'baseline',
@@ -165,11 +163,22 @@ const DIL_ACTION: React.CSSProperties = {
 function DilFence({ id, meta }: { id: string, meta: ArtifactMetaDil }): React.ReactNode {
 	const hostRef = useRef<HTMLDivElement | null>(null)
 	const handleRef = useRef<DilMountHandle | null>(null)
-	const stateRef = useRef<Record<string, unknown>>(dilState.get(id) ?? {})
+	const stateRef = useRef<Record<string, unknown>>(dilStateOf(id))
 	const [stateCount, setStateCount] = useState(() => Object.keys(stateRef.current).length)
 	const [notice, setNotice] = useState<string | null>(null)
 	const compiled = meta.dil
 	const ready = compiled.code.length > 0
+
+	// The column's copy of this artifact adopts whatever this one reports. The
+	// publisher is skipped and an unchanged payload is dropped downstream, so the
+	// two mounts cannot trade the same state back and forth.
+	const adopt = useRef<DilStateListener>((next) => {
+		stateRef.current = next
+		handleRef.current?.setState(next)
+		setStateCount(Object.keys(next).length)
+	}).current
+
+	useEffect(() => subscribeDilState(id, adopt), [id, adopt])
 
 	// One sandbox per artifact. Revisions ride `update`; only the identity or a
 	// document that has not been compiled yet rebuilds it.
@@ -180,8 +189,8 @@ function DilFence({ id, meta }: { id: string, meta: ArtifactMetaDil }): React.Re
 		const handle = mountDilView(shadow, {
 			onStateChange: (state) => {
 				stateRef.current = state
-				dilState.set(id, state)
 				setStateCount(Object.keys(state).length)
+				publishDilState(id, state, adopt)
 			},
 			// The mount already forwards the event into the sandbox, which is what
 			// makes the interface respond; this is only the observation point.
