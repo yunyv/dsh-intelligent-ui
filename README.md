@@ -65,6 +65,12 @@ plugin_manager set_plugin target=include:dsh-genui enabled=true
 
 **但这只在加载失败时有效。** 一旦某个版本成功加载过，模块就进了进程的 ESM 缓存，关掉再开只会重新 `apply` 那份**已经被缓存的旧代码**——包换了、`apply` 跑了、行为却还是旧的。实测过一次：重装后 profile 里的 `lib/index.js` 与本地产物字节一致、确实含新代码，但补丁返回的降级文本仍是旧的。**换了代码必须重启，没有例外。**
 
+**三、重启 App 别用 `launchctl submit`。** 它建的作业在进程退出后会被 launchd 再拉起来，于是"退出 → 重开"变成无限循环，App 一直重启。踩过一次。
+
+要一次性执行就写 LaunchAgent plist（`RunAtLoad` 且**不写** `KeepAlive`）再 `launchctl bootstrap`，或者在脚本末尾自己 `launchctl bootout` 掉。最省事的办法是让人来重启。
+
+顺带一句：**成功加载过的模块进 ESM 缓存，换代码必须重启**（见上节第二坑），所以"改了就要重启"这件事没有捷径。
+
 ## 验收
 
 ```
