@@ -40,21 +40,23 @@ The distinction that matters: **the sandbox is an execution container, not a dis
 From npm:
 
 ```sh
-dsh plugin --profile desktop add dsh-intelligent-ui
+dsh plugin --profile <profile> add dsh-intelligent-ui
 ```
+
+For the Electron **desktop** profile, use the app's Plugin Manager instead; the CLI refuses that profile.
 
 Or straight from the repository:
 
 ```sh
-dsh plugin --profile desktop add github:yunyv/dsh-intelligent-ui
+dsh plugin --profile <profile> add github:yunyv/dsh-intelligent-ui
 ```
 
-Then **restart the app**. The build output is committed, so a git install needs no build step and no build permission.
+Requires DSH **>= 0.2.1-rc.1** (`engines.dsh`). Then **restart the app**. The build output is committed, so a git install needs no build step and no build permission.
 
 From a tarball, if you prefer to pin an exact artifact:
 
 ```sh
-dsh plugin --profile desktop add ./dsh-intelligent-ui-0.1.0.tgz
+dsh plugin --profile <profile> add ./dsh-intelligent-ui-0.1.1.tgz
 ```
 
 From a checkout, for development:
