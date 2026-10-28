@@ -155,7 +155,10 @@ outside the font's coverage may use a browser fallback. The integration
 redistributes the pinned packages' published output without regenerating or
 modifying any glyph outline; third-party licences, origins and the exact
 redistribution scope are in
-[the math notices](assets/math/THIRD_PARTY_NOTICES.md). Rebuild generated sources from the Git checkout.
+[the math notices](assets/math/THIRD_PARTY_NOTICES.md). npm archives include
+`PROVENANCE.md` and handwritten source for reference, but omit the duplicate
+`src/client/dil/math/generated/worker-source.ts`; the complete runtime Worker stays
+embedded in `lib/client.js`. Rebuild generated sources from the Git checkout.
 
 ## How it works
 
@@ -207,6 +210,9 @@ pnpm run check     # typecheck (3 projects) && build && vitest && the vendored u
 The original release baseline is 442 tests: 344 ours, 98 vendored from upstream.
 This branch adds math engine, scheduling, lifecycle and executable-documentation
 coverage; `pnpm run check` is the authoritative result for the current tree.
+CI then runs `pnpm run check:generated` to reject rebuilt or newly emitted files
+that differ from the checked-out generated artifacts. This separate gate expects
+a clean generated baseline; it does not stage or repair files.
 The browser half is tested against the **built** `lib/client.js` through the real
 `__ModuleLoader__.load({ id, factory })` contract, so a registration or render
 failure there is a real defect rather than a test-harness artefact.

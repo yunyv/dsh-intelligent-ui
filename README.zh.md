@@ -139,7 +139,9 @@ UTF-16 输入预算时明确标出源码预览截断，不把截断片段当作�
 内容。数学字形使用 NewCM 路径，超出字体覆盖的 Unicode 文本可能采用浏览器后备字体。
 本集成原样分发固定包的已发布产物，不重新生成也不改写任何字形轮廓；第三方许可、
 来源与确切的分发范围见[数学渲染通知](assets/math/THIRD_PARTY_NOTICES.md)。
-生成源码请从 Git checkout 重建。
+npm 包保留 `PROVENANCE.md` 和供参考的手写源码，但不重复携带生成的
+`src/client/dil/math/generated/worker-source.ts`；完整运行时 Worker 仍内嵌于
+`lib/client.js`。生成源码请从 Git checkout 重建。
 
 ## 它是怎么工作的
 
@@ -189,7 +191,9 @@ pnpm run check     # typecheck（三个工程）&& 构建 && vitest && 上游自
 ```
 
 原版本的基线为 **442 项：自有 344，上游移植 98**。本分支另加数学引擎、任务调度、
-生命周期和可执行文档测试；当前代码的结果以 `pnpm run check` 为准。浏览器半是对着
+生命周期和可执行文档测试；当前代码的结果以 `pnpm run check` 为准。CI 随后执行
+`pnpm run check:generated`，拒绝重建后与 checkout 不同或新增的生成文件；该独立闸门
+要求生成基线干净，不会自动暂存或修复文件。浏览器半是对着
 **构建产物** `lib/client.js` 测的，走真实的 `__ModuleLoader__.load({ id, factory })`
 契约——所以那里的注册或渲染失败是真缺陷，不是测试脚手架的假象。
 

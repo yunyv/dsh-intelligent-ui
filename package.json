@@ -22,7 +22,8 @@
     "assets",
     "cordis.patch.yml",
     "lib",
-    "src"
+    "src",
+    "PROVENANCE.md"
   ],
   "scripts": {
     "build:math-worker": "node scripts/build-math-worker.mjs",
@@ -31,6 +32,7 @@
     "test": "vitest run",
     "test:vendor": "node --test vendor/dil-replica/replica/test/*.test.js",
     "check": "pnpm run typecheck && pnpm run build && pnpm run test && pnpm run test:vendor",
+    "check:generated": "node scripts/check-generated.mjs",
     "prepublishOnly": "pnpm run check"
   },
   "dsh": {
