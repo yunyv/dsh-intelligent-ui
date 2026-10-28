@@ -94,6 +94,72 @@ The authoring contract — the full component inventory, the rules that make a d
 
 Where the card appears is under the model's control too: it writes a fenced block whose language is `dsh-artifact` and whose only content is the artifact id, and the frame is mounted at that point in the answer.
 
+## LaTeX mathematics in DIL
+
+Use `<math tex="…"/>` inline, or add the boolean `display` prop for a separate
+formula. The host renders **New Computer Modern** SVG glyphs using pinned
+MathJax/NewCM **4.1.3**. This is a native DIL component, not the HTML escape hatch;
+it needs no system font installation, CDN, or runtime font download.
+
+```dil
+{@body const [denominator,setDenominator] = DIL.useState(2)}
+{@body const fraction = String.raw`\frac{1}{${denominator}}`}
+<box gap={3}>
+  <text>Pythagoras: <math tex="a^2+b^2=c^2"/></text>
+  <math tex={fraction} display/>
+  <math tex="\begin{pmatrix}a&b\\c&d\end{pmatrix}" display/>
+  <button onClick={() => setDenominator(denominator+1)}>Denominator +1</button>
+</box>
+```
+
+Quoted DIL attributes preserve backslashes: a static `tex="\frac{1}{2}"` needs
+only one backslash. Dynamic expressions are JavaScript; use `String.raw` or normal
+JavaScript escaping. `tex` is required, `display` defaults to `false`, and `math`
+is a leaf (children are ignored). Existing `color`, `size`, `width` and `hidden`
+props apply. Plain `$…$`/`$$…$$` prose is not automatically interpreted as math.
+
+The supported math subset is `base`, `ams`, and `newcommand`, not arbitrary LaTeX
+packages or `.tex` documents. Inputs are capped at 8192 UTF-16 characters, with
+bounded macro and array-template expansion; every request has fresh TeX state.
+Use `display` or an AMS display environment for explicit `\tag`; plain inline math
+does not show that label. Tags and explicit `\\` / `\\[length]` line breaks use a
+finite, intrinsic-width SVG, preserving local label padding and line leading
+rather than stretching labels to the card edge. Automatic equation numbering and
+cross-formula references are not enabled. The host keeps a clipped, bounded canvas:
+when `\smash`/lap or fallback text extends beyond the logical box, native ink bounds
+can expand the canvas without rescaling glyphs or changing their baseline. Initially
+hidden formulas are fitted once after becoming visible; the expanded SVG must still
+pass the same geometry and size checks.
+
+A separate **DOM-less math Worker**, not the DIL program Worker, owns conversion.
+The host serializes at most 32 pending requests, terminates timed-out work after
+2 seconds, cancels stale/unmounted consumers, and releases idle Workers. Cancelling
+an active consumer returns immediately, but its actual Worker execution keeps the
+slot and original deadline until its matching completion or a hard timeout/error;
+queued cancellations are removed without starting them. Results are limited to
+262144 characters and a checked inert SVG dialect. An error affects
+only that formula and displays readable TeX. For valid input, the error includes
+an explicit **Retry** button: unchanged tree patches preserve the error and do not
+resubmit it; clicking Retry or changing `tex`/`display` starts a new request.
+While pending, repeated clicks and unchanged patches do not submit duplicates.
+A missing/blocked Worker does not fall back to synchronous page-thread conversion.
+The text-only projection uses fenced TeX blocks for multiline formulas, preserving
+line breaks and indentation. Inputs over the 8192 UTF-16 input budget show an
+explicitly marked source preview, not a silently truncated complete formula.
+
+All 40 NewCM SVG data shards are preloaded and no math/font loader is enabled.
+This complete offline coverage currently adds about **11.3 MB of uncompressed
+Worker source** to the client bundle; startup and replay are part of the browser
+acceptance checks. SVG mathematical glyphs are NewCM paths, while Unicode text
+outside the font's coverage may use a browser fallback. The integration
+redistributes the pinned packages' published output without regenerating or
+modifying any glyph outline; third-party licences, origins and the exact
+redistribution scope are in
+[the math notices](assets/math/THIRD_PARTY_NOTICES.md). npm archives include
+`PROVENANCE.md` and handwritten source for reference, but omit the duplicate
+`src/client/dil/math/generated/worker-source.ts`; the complete runtime Worker stays
+embedded in `lib/client.js`. Rebuild generated sources from the Git checkout.
+
 ## How it works
 
 ```
@@ -141,7 +207,15 @@ The write order is content → sidecar → atomic index replace, and both the re
 pnpm run check     # typecheck (3 projects) && build && vitest && the vendored upstream suite
 ```
 
-442 tests pass: 344 ours, 98 vendored from upstream. The browser half is tested against the **built** `lib/client.js` through the real `__ModuleLoader__.load({ id, factory })` contract, so a registration or render failure there is a real defect rather than a test-harness artefact.
+The original release baseline is 442 tests: 344 ours, 98 vendored from upstream.
+This branch adds math engine, scheduling, lifecycle and executable-documentation
+coverage; `pnpm run check` is the authoritative result for the current tree.
+CI then runs `pnpm run check:generated` to reject rebuilt or newly emitted files
+that differ from the checked-out generated artifacts. This separate gate expects
+a clean generated baseline; it does not stage or repair files.
+The browser half is tested against the **built** `lib/client.js` through the real
+`__ModuleLoader__.load({ id, factory })` contract, so a registration or render
+failure there is a real defect rather than a test-harness artefact.
 
 To iterate on `src/client/**` without restarting the app, build and copy the bundle into the installed copy; the browser picks it up:
 

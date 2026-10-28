@@ -21,13 +21,14 @@ import data from './components/data.ts'
 import { defineHost } from './components/host.ts'
 import controls from './components/controls.ts'
 import layout from './components/layout.ts'
+import math from './components/math.ts'
 import text from './components/text.ts'
 import { useDocument } from './dom.ts'
 import { ICON_NAMES, iconSvg } from './icons.ts'
 import { createPatcher, flatten, type DilFactory, type DilRecord } from './patch.ts'
 
 /** The host's fixed vocabulary: tag → factory. The model cannot add to it. */
-export const FACTORIES: Record<string, DilFactory> = { ...layout, ...text, ...controls, ...data, ...charts }
+export const FACTORIES: Record<string, DilFactory> = { ...layout, ...text, ...controls, ...data, ...charts, ...math }
 
 function componentResults(appData: unknown): Record<string, DilComponentResult> {
 	const genui = (appData as { opGenui?: { componentResults?: Record<string, DilComponentResult> } } | null | undefined)?.opGenui
@@ -70,7 +71,7 @@ export function mount(container: HTMLElement, tree?: DilNode | null, options: Di
 		componentResults: componentResults(options.appData),
 		onTeardown: (dispose) => teardowns.push(dispose)
 	}
-	const { patchChildren } = createPatcher(FACTORIES, ctx)
+	const { patchChildren, destroy: destroyRecords } = createPatcher(FACTORIES, ctx)
 	const records: DilRecord[] = []
 	let current: DilNode | null = null
 
@@ -87,6 +88,8 @@ export function mount(container: HTMLElement, tree?: DilNode | null, options: Di
 			return current
 		},
 		destroy(): void {
+			destroyRecords(records)
+			current = null
 			for (const dispose of teardowns.splice(0)) {
 				try {
 					dispose()

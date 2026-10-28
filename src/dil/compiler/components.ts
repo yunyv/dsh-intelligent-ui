@@ -13,7 +13,7 @@
 
 export const INTRINSIC = new Set([
 	'box', 'row', 'column', 'grid', 'grid-item', 'card', 'divider', 'spacer',
-	'text', 'title', 'caption', 'bold', 'label', 'code', 'icon', 'badge',
+	'text', 'title', 'caption', 'bold', 'label', 'code', 'icon', 'badge', 'math',
 	'button', 'input', 'textarea', 'checkbox', 'radio', 'radio-group', 'select',
 	'slider', 'segmented-control', 'table', 'table-row', 'table-cell',
 	'list', 'list-item', 'progress', 'chart', 'pie-chart', 'image', 'link'

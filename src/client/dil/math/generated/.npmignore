@@ -1,0 +1,2 @@
+# The same Worker is already bundled in lib/client.js; keep it in Git, not twice in npm.
+worker-source.ts

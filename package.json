@@ -22,14 +22,17 @@
     "assets",
     "cordis.patch.yml",
     "lib",
-    "src"
+    "src",
+    "PROVENANCE.md"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build:math-worker": "node scripts/build-math-worker.mjs",
+    "build": "pnpm run build:math-worker && tsdown",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.client.json && tsc -p tsconfig.client-test.json",
     "test": "vitest run",
     "test:vendor": "node --test vendor/dil-replica/replica/test/*.test.js",
     "check": "pnpm run typecheck && pnpm run build && pnpm run test && pnpm run test:vendor",
+    "check:generated": "node scripts/check-generated.mjs",
     "prepublishOnly": "pnpm run check"
   },
   "dsh": {
@@ -56,6 +59,8 @@
     "@deepseek-ai/dsh-skill": "0.2.1-rc.1",
     "@deepseek-ai/dsh-tools": "0.2.1-rc.1",
     "@deepseek-ai/schemastery": "^3.18.1",
+    "@mathjax/mathjax-newcm-font": "4.1.3",
+    "@mathjax/src": "4.1.3",
     "@types/node": "^22.0.0",
     "@types/react": "~18.3.0",
     "@types/react-dom": "^18.3.0",

@@ -118,6 +118,21 @@ export function createPatcher(factories: Record<string, DilFactory>, ctx: DilCon
 		return { text: false, handle, node: handle.node, tag: entry.t, children: [] }
 	}
 
+	function disposeRecord(record: DilRecord): void {
+		for (const child of record.children) disposeRecord(child)
+		record.children.length = 0
+		if (record.text) return
+		const listeners = bound.get(record.handle)
+		if (listeners) for (const event of Object.values(listeners)) record.node.removeEventListener(event.type, event.listener)
+		bound.delete(record.handle)
+		try { record.handle.destroy?.() } catch { /* one widget must not strand sibling cleanups */ }
+	}
+
+	function destroy(records: DilRecord[]): void {
+		for (const record of records) disposeRecord(record)
+		records.length = 0
+	}
+
 	function update(record: DilRecord, entry: DilFlatNode): void {
 		if (isText(entry)) {
 			if (!record.text) return
@@ -128,7 +143,7 @@ export function createPatcher(factories: Record<string, DilFactory>, ctx: DilCon
 		const props = entry.p ?? {}
 		record.handle.update({ ...props, __tag: record.tag })
 		bindEvents(record.handle, props)
-		patchChildren(record.handle.childHost ?? record.node, record.children, flatten(entry.c))
+		patchChildren(record.handle.childHost ?? record.node, record.children, record.handle.acceptsChildren === false ? [] : flatten(entry.c))
 	}
 
 	function sameShape(record: DilRecord, entry: DilFlatNode): boolean {
@@ -145,15 +160,21 @@ export function createPatcher(factories: Record<string, DilFactory>, ctx: DilCon
 				return
 			}
 			const made = create(entry)
-			if (old) container.replaceChild(made.node, old.node)
-			else container.appendChild(made.node)
+			if (old) {
+				disposeRecord(old)
+				container.replaceChild(made.node, old.node)
+			} else container.appendChild(made.node)
 			update(made, entry)
 			next.push(made)
 		})
-		for (let index = entries.length; index < records.length; index += 1) container.removeChild(records[index]!.node)
+		for (let index = entries.length; index < records.length; index += 1) {
+			const old = records[index]!
+			disposeRecord(old)
+			container.removeChild(old.node)
+		}
 		records.length = 0
 		records.push(...next)
 	}
 
-	return { patchChildren }
+	return { patchChildren, destroy }
 }
