@@ -126,6 +126,10 @@ export type DilElement = HTMLElement & { dilValue?: unknown }
 export interface DilHandle {
 	node: HTMLElement
 	update(props: DilProps): void
+	/** Release per-node work before removal or view teardown. Must be idempotent. */
+	destroy?(): void
+	/** Leaf widgets own their DOM; their model-provided children are not mounted. */
+	acceptsChildren?: boolean
 	/** Where children are patched; defaults to `node`. */
 	childHost?: Node
 	/** `{ domEvent: 'propName' }` — overrides the default event for a prop. */

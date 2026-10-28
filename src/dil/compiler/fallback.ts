@@ -37,7 +37,8 @@ export function toFallback(nodes: DilNode[], ctx: FallbackContext = { listDepth:
 		if (node.type !== 'element') continue // stmt carries no static text
 		out.push(elementFallback(node, ctx))
 	}
-	return out.join('').replace(/\n{3,}/g, '\n\n')
+	// Do not collapse source whitespace here; tidyFallback handles non-code debris.
+	return out.join('')
 }
 
 function elementFallback(node: DilElementNode, ctx: FallbackContext): string {
@@ -46,6 +47,28 @@ function elementFallback(node: DilElementNode, ctx: FallbackContext): string {
 		case 'title': return `\n\n## ${inner()}\n\n`
 		case 'caption': return `\n${inner()}\n`
 		case 'badge': return ` ${inner()} `
+		case 'math': {
+			// Static previews retain expression source; they never execute it.
+			const attr = node.attrs.find((a) => a.name === 'tex')
+			if (!attr || attr.kind === 'boolean') return '[math]'
+			const source = attr.kind === 'string' ? attr.value : `{${attr.value}}`
+			const previewLimit = 8192
+			let tex = source.slice(0, previewLimit)
+			const last = tex.charCodeAt(tex.length - 1)
+			if (tex.length < source.length && last >= 0xd800 && last <= 0xdbff) tex = tex.slice(0, -1)
+			if (!tex) return ''
+			let longest = 0
+			for (const run of tex.matchAll(/`+/g)) longest = Math.max(longest, run[0].length)
+			const truncated = tex.length < source.length ? `\n[math source preview truncated at ${previewLimit} UTF-16 characters]\n` : ''
+			// Multiline code must be a block: inline spans cannot protect blank lines
+			// or HTML-looking content across Markdown paragraph boundaries.
+			if (/[\r\n]/.test(tex)) {
+				const fence = '`'.repeat(Math.max(3, longest + 1))
+				return `\n[math]\n${fence}tex\n${tex}\n${fence}\n${truncated}`
+			}
+			const fence = '`'.repeat(longest + 1)
+			return ` [math] ${fence} ${tex} ${fence} ${truncated}`
+		}
 		case 'button': return ` [${inner()}]`
 		case 'divider': return '\n\n---\n\n'
 		case 'list': return `\n${toFallback(node.children, ctx)}\n`
@@ -73,22 +96,44 @@ function elementFallback(node: DilElementNode, ctx: FallbackContext): string {
  */
 export function tidyFallback(md: string): string {
 	const hasWord = (s: string): boolean => /[\p{L}\p{N}]/u.test(s)
-	return md
-		.split('\n')
-		.map((l) => l.trim())
-		.filter((l) => {
-			if (!l) return false
-			if (/^#{1,6}\s*$/.test(l)) return false
-			if (/^#{1,6}\s/.test(l) && !hasWord(l.replace(/^#+\s*/, ''))) return false
-			if (l.startsWith('|')) {
-				const cells = l.replace(/^\|/, '').replace(/\|$/, '').split('|')
-				if (!cells.some(hasWord)) return false
-			}
-			return hasWord(l) || /^[-*]\s/.test(l) || l === '---'
-		})
-		.join('\n')
-		.replace(/\n{3,}/g, '\n\n')
-		.trim()
+	const keep = (line: string): boolean => {
+		if (!line || /^#{1,6}\s*$/.test(line)) return false
+		if (/^#{1,6}\s/.test(line) && !hasWord(line.replace(/^#+\s*/, ''))) return false
+		if (line.startsWith('|')) {
+			const cells = line.replace(/^\|/, '').replace(/\|$/, '').split('|')
+			if (!cells.some(hasWord)) return false
+		}
+		return hasWord(line) || /^[-*]\s/.test(line) || line === '---'
+	}
+	const out: string[] = []
+	let mathFence = 0
+	let afterMathLabel = false
+	for (const raw of md.split('\n')) {
+		let ticks = 0
+		while (raw[ticks] === '`') ticks++
+		if (mathFence) {
+			if (ticks === mathFence) {
+				// The generated delimiter is longer than every run in the source.
+				// Parent button/table projections may append their closing syntax.
+				out.push('`'.repeat(mathFence))
+				mathFence = 0
+				const suffix = raw.slice(ticks).trim()
+				if (suffix) out.push(suffix)
+				afterMathLabel = suffix.includes('[math]')
+			} else out.push(raw)
+			continue
+		}
+		const line = raw.trim()
+		if (afterMathLabel && ticks >= 3 && raw.slice(ticks) === 'tex') {
+			mathFence = ticks
+			out.push(raw)
+			afterMathLabel = false
+			continue
+		}
+		if (keep(line)) out.push(line)
+		afterMathLabel = line.includes('[math]')
+	}
+	return out.join('\n').trim()
 }
 
 function columnize(row: DilElementNode): string {

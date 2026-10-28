@@ -566,6 +566,23 @@
   cursor: help;
 }
 
+/* -- mathematics: NewCM glyphs are offline SVG paths, not a system font ------- */
+.dil-math { display: inline-block; max-width: 100%; direction: ltr; vertical-align: baseline; }
+.dil-math > svg { display: inline-block; max-width: none; overflow: hidden; color: inherit; }
+.dil-math-display { display: block; overflow-x: auto; overflow-y: hidden; padding: .25em 0; }
+.dil-math-display > svg { display: block; margin-inline: auto; }
+/* Only fitted canvases need their signed SVG baseline to participate in the line box. */
+.dil-math-display[data-d-math-ink] { text-align: center; }
+.dil-math-display[data-d-math-ink] > svg { display: inline-block; }
+/* MathJax 4.1.3 table rules; keep their paint inside formula content. */
+.dil-math g[data-mml-node="mtable"] > line[data-line],
+.dil-math g[data-mml-node="mtable"] > rect[data-frame] { stroke-width: 70px; fill: none; }
+.dil-math g[data-mml-node="mtable"] > .mjx-dashed { stroke-dasharray: 140; }
+.dil-math g[data-mml-node="mtable"] > .mjx-dotted { stroke-linecap: round; stroke-dasharray: 0,140; }
+.dil-math-pending, .dil-math-error { font-family: ui-monospace, monospace; font-size: .9em; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dil-math-pending { opacity: .65; }
+.dil-math-error { color: var(--dil-danger); }
+
 @media (prefers-reduced-motion: reduce) {
   .dil-root * { animation: none !important; transition: none !important; }
 }

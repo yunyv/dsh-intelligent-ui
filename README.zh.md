@@ -92,6 +92,55 @@ bash scripts/reinstall-desktop.sh
 
 卡片出现在哪里也归模型控制：它写一个语言标记为 `dsh-artifact`、内容只有产物 id 的围栏块，帧就挂载在回答里的那个位置。
 
+## DIL 中的 LaTeX 数学公式
+
+行内公式使用 `<math tex="…"/>`，独立公式加布尔属性 `display`。宿主用固定版本的
+MathJax／NewCM **4.1.3** 绘制 **New Computer Modern** SVG 字形。这是 DIL 原生组件，
+不需要转成 HTML 逃生舱，也不需要本机安装字体、CDN 或运行时下载字体。
+
+```dil
+{@body const [denominator,setDenominator] = DIL.useState(2)}
+{@body const fraction = String.raw`\frac{1}{${denominator}}`}
+<box gap={3}>
+  <text>勾股定理：<math tex="a^2+b^2=c^2"/></text>
+  <math tex={fraction} display/>
+  <math tex="\begin{pmatrix}a&b\\c&d\end{pmatrix}" display/>
+  <button onClick={() => setDenominator(denominator+1)}>分母 ＋1</button>
+</box>
+```
+
+DIL 的引号属性保留反斜杠，静态 `tex="\frac{1}{2}"` 只需一个反斜杠。动态表达式是
+JavaScript，使用 `String.raw` 或遵守普通 JS 字符串的转义规则。`tex` 必填，`display`
+默认 `false`；`math` 是叶子组件，会忽略 children。已有的 `color`、`size`、`width`、
+`hidden` 属性继续可用。正文中的 `$…$`／`$$…$$` 不会自动作为公式解释。
+
+支持的数学子集为 `base`、`ams`、`newcommand`，不是任意 LaTeX 宏包或完整 `.tex`
+文档。输入上限为 8192 个 UTF-16 字符，宏与数组列模板的展开均有界；每次请求重新建立
+TeX 状态。显式 `\tag` 请放在 `display` 或 AMS 行间环境中，普通行内公式不显示该标签。
+标签以及两种模式下的显式 `\\`／`\\[length]` 换行均生成有限、内在宽度的单 SVG，保留局部
+标签内距和行距，不把标签强行拉到卡片边缘。未启用公式自动编号或跨公式引用。
+宿主保留有界画布裁切；`\smash`／lap 或后备文字的画笔超出逻辑盒时，按原生墨迹边界扩展
+画布，不缩放字形或改变其基线。初始隐藏的公式在显示后只拟合一次；扩展后的 SVG 仍须
+通过同一套几何与尺寸检查。
+
+转换由独立的**无 DOM 数学 Worker** 完成，不进入执行 DIL 程序的 Worker。
+宿主最多容纳 32 个待处理请求，串行处理，2 秒超时后终止；旧公式、已卸载节点的消费者会
+取消，空闲 Worker 会释放。活动消费者取消后立即返回，但其 Worker 实际执行仍保留占位和
+原期限，直到匹配完成或超时／错误才释放；排队取消则直接移除、不启动。输出最多 262144
+个字符，并限制为通过校验的惰性 SVG。
+错误只影响该公式，局部显示可读 TeX。输入有效时提供显式 **Retry** 按钮：同输入的普通树
+patch 保留错误提示，不重新提交；点击 Retry 或改变 `tex`／`display` 才发起新请求。
+等待期间重复点击与同输入 patch 不会重复派工。浏览器不支持或阻止 Worker 时，不会退回
+页面线程同步转换。纯文本投影对多行公式使用 TeX 围栏，保留换行和缩进；超过 8192
+UTF-16 输入预算时明确标出源码预览截断，不把截断片段当作完整公式。
+
+40 个 NewCM SVG 字体数据分片全部预载，没有启用数学／字体动态加载器。完整离线覆盖
+目前为客户端增加约 **11.3 MB 未压缩 Worker 源码**；启动与历史回放成本属于浏览器验收
+内容。数学字形使用 NewCM 路径，超出字体覆盖的 Unicode 文本可能采用浏览器后备字体。
+本集成原样分发固定包的已发布产物，不重新生成也不改写任何字形轮廓；第三方许可、
+来源与确切的分发范围见[数学渲染通知](assets/math/THIRD_PARTY_NOTICES.md)。
+生成源码请从 Git checkout 重建。
+
 ## 它是怎么工作的
 
 ```
@@ -139,7 +188,10 @@ artifacts/art-xxxxxxxx/versions/
 pnpm run check     # typecheck（三个工程）&& 构建 && vitest && 上游自带的测试
 ```
 
-**442 个测试全绿：自有 344，上游移植 98。** 浏览器半是对着**构建产物** `lib/client.js` 测的，走真实的 `__ModuleLoader__.load({ id, factory })` 契约——所以那里的注册或渲染失败是真缺陷，不是测试脚手架的假象。
+原版本的基线为 **442 项：自有 344，上游移植 98**。本分支另加数学引擎、任务调度、
+生命周期和可执行文档测试；当前代码的结果以 `pnpm run check` 为准。浏览器半是对着
+**构建产物** `lib/client.js` 测的，走真实的 `__ModuleLoader__.load({ id, factory })`
+契约——所以那里的注册或渲染失败是真缺陷，不是测试脚手架的假象。
 
 只改 `src/client/**` 时可以不用重启 App，把构建产物覆盖进安装副本，浏览器会重新装载：
 

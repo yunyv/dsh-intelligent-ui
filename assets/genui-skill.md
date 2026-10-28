@@ -112,7 +112,7 @@ changes local state.
 (`columns={2}`) + `grid-item`, `card`, `divider`, `spacer`.
 
 **Text** `title` (`size` xs–2xl), `text`, `caption`, `bold`, `label`, `code`, `link`
-(`href`).
+(`href`); `math` (`tex` string, optional boolean `display`) for LaTeX mathematics.
 
 **Chrome** `badge` (`color`), `icon` (`name`: lucide names — wallet, cpu, zap,
 check-circle, alert-triangle, trending-up), `button` (`variant` solid|outline|ghost,
@@ -143,6 +143,54 @@ check-circle, alert-triangle, trending-up), `button` (`variant` solid|outline|gh
 **Common props** `gap` / `padding` (0–6), `radius` (sm|md|lg|xl|2xl), `border`,
 `background` (surface|sunken), `align`, `justify`, `size`, `color`
 (secondary|tertiary|success|warning|danger|info), `weight`, `tabularNums`.
+
+## Mathematics
+
+Use a leaf `<math tex="…"/>` for inline mathematics, or add `display` for a separate
+formula. It renders offline with MathJax and New Computer Modern SVG glyphs, inside
+the normal DIL view — do not switch the artifact to HTML mode for a formula.
+
+Quoted DIL attributes preserve backslashes: write `tex="\frac{1}{2}"`, not a
+JavaScript-escaped double backslash. For a dynamic JavaScript expression, use
+`String.raw` as below (ordinary JS strings still follow JavaScript escape rules).
+Do not put TeX in children, and do not rely on `$…$` or `$$…$$` in prose being parsed.
+
+```dil
+{@body const [denominator,setDenominator] = DIL.useState(2)}
+{@body const fraction = String.raw`\frac{1}{${denominator}}`}
+<box gap={3}>
+  <text>勾股定理：<math tex="a^2+b^2=c^2"/></text>
+  <math tex={fraction} display/>
+  <math tex="\begin{pmatrix}a&b\\c&d\end{pmatrix}" display/>
+  <button onClick={() => setDenominator(denominator+1)}>分母 ＋1</button>
+</box>
+```
+
+`math` inherits the view's colour and text size; optional `color`, `size`, `width`
+and `hidden` use the existing common props. TeX is limited to 8192 characters and
+a supported, bounded math subset (`base`, `ams`, `newcommand`), not full LaTeX
+packages or a `.tex` document. Each request has isolated macros. Use `display` or
+an AMS display environment for explicit `\tag`; a plain inline `\tag` is not shown.
+Explicit `\\` and `\\[length]` preserve line breaks and leading in either mode.
+Tags and multiline formulas use finite intrinsic-width SVGs with local label
+padding, not card-edge alignment. Automatic numbering and cross-formula references
+are not enabled. The host fits overhanging ink into a bounded, clipped canvas without
+rescaling glyphs; hidden formulas are fitted once when visible. Canvas expansion still
+uses the shared size and geometry checks. Invalid or unsupported input falls back
+locally to readable TeX.
+Valid input errors offer an
+explicit **Retry** button. Unchanged tree patches preserve the error instead of
+resubmitting; Retry or a change to `tex`/`display` starts a new request. Pending
+requests ignore repeated clicks and unchanged patches. Keep formulas concise: the
+host uses a bounded, cancellable Worker queue and refuses oversized SVG results.
+Cancellation immediately settles a stale consumer, while actual in-flight work
+retains its slot and original deadline until completion or a hard timeout/error;
+queued cancellations are removed without running them.
+A browser that cannot create a Blob Worker shows the local fallback, never a
+synchronous page-thread renderer. Mathematical glyphs are NewCM paths; unsupported
+Unicode text can use the browser's fallback font. In the text-only projection,
+multiline TeX uses fenced blocks preserving line breaks and indentation; an input
+above the 8192 UTF-16 budget is an explicitly marked, truncated source preview.
 
 ## Where it appears, and revising it
 
